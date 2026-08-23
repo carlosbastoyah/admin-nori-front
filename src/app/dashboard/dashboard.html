@@ -1,0 +1,23 @@
+<div class="mx-auto max-w-3xl px-6 py-10">
+  <div class="rounded-2xl bg-white p-8 shadow-e2">
+    <h1 class="font-heading text-2xl font-semibold text-type-1">
+      Bienvenido{{ currentUser?.name ? ', ' + currentUser?.name : '' }}
+    </h1>
+    <p class="mt-2 text-sm text-type-2">Sesión iniciada correctamente.</p>
+
+    <dl class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Usuario</dt>
+        <dd class="mt-1 text-sm text-type-1">{{ currentUser?.userName || currentUser?.email || '—' }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Cliente</dt>
+        <dd class="mt-1 text-sm text-type-1">{{ currentUser?.clientCode || '—' }}</dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Roles</dt>
+        <dd class="mt-1 text-sm text-type-1">{{ currentUser?.roles?.join(', ') || '—' }}</dd>
+      </div>
+    </dl>
+  </div>
+</div>

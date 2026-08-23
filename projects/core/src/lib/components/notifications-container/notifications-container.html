@@ -1,0 +1,12 @@
+<div
+  class="pointer-events-none fixed z-[9999] flex flex-col gap-3"
+  [class.top-4]="position === 'top-right'"
+  [class.right-4]="true"
+  [class.bottom-4]="position === 'bottom-right'"
+>
+  <nori-notification
+    *ngFor="let notification of notifications"
+    [notification]="notification"
+    (dismiss)="onDismiss($event)"
+  ></nori-notification>
+</div>

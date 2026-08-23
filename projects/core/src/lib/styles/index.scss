@@ -1,0 +1,3 @@
+// Design tokens — public entry. Import once in app styles.scss:
+// @use 'index' as *;  (with stylePreprocessorOptions.includePaths including this directory)
+@use 'root';

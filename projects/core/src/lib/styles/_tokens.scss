@@ -1,0 +1,116 @@
+// Design tokens — single source of truth (ported from WerClinical v2 guide).
+// Values are exposed as CSS custom properties in _root.scss.
+
+// ── Spacing (base 4px = 0.25rem) ─────────────────────────────────────
+$space-1: 0.25rem;   // 4px
+$space-2: 0.5rem;    // 8px
+$space-3: 0.75rem;   // 12px
+$space-4: 1rem;      // 16px
+$space-5: 1.25rem;   // 20px
+$space-6: 1.5rem;    // 24px
+$space-8: 2rem;     // 32px
+$space-10: 2.5rem;  // 40px
+$space-12: 3rem;     // 48px
+$space-16: 4rem;     // 64px
+$space-20: 5rem;     // 80px
+$space-touch: 44px;  // min touch target (accessibility)
+
+// ── Typography ────────────────────────────────────────────────────────
+$font-size-caption: 0.6875rem;  // 11px — labels, badges
+$font-size-xs: 0.75rem;         // 12px
+$font-size-sm: 0.875rem;        // 14px — body secondary
+$font-size-base: 1rem;          // 16px — body
+$font-size-lg: 1.125rem;        // 18px
+$font-size-xl: 1.25rem;         // 20px — section titles
+$font-size-2xl: 1.5rem;         // 24px
+$font-size-3xl: 1.875rem;       // 30px — page titles
+$font-size-4xl: 2.25rem;        // 36px — hero
+
+// Font families: Inter (body/data) + Sora (headings) + JetBrains Mono (codes/ids)
+$font-sans: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+$font-heading: 'Sora', 'Inter', sans-serif;
+$font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+// ── Border radius ────────────────────────────────────────────────────
+$radius-sm: 0.25rem;   // 4px
+$radius-md: 0.5rem;    // 8px
+$radius-lg: 0.75rem;   // 12px
+$radius-xl: 1rem;     // 16px
+$radius-2xl: 1.5rem;   // 24px
+$radius-3xl: 2rem;     // 32px
+$radius-full: 9999px;
+
+// ── Brand: Nori Teal ──────────────────────────────────────────────────
+$teal-50:  #E4F5F4;
+$teal-100: #BCE7E4;
+$teal-200: #85D2CD;
+$teal-300: #4DBDB7;
+$teal-400: #1FA9A2;
+$teal-500: #0A8A7E;
+$teal-600: #077A6F;
+$teal-700: #056660;
+$teal-800: #034D48;
+$teal-900: #023530;
+
+// ── Neutral: Deep Navy ───────────────────────────────────────────────
+$navy-50:  #EDF1F6;
+$navy-100: #D2DCE8;
+$navy-200: #A3B7CF;
+$navy-300: #6F90B0;
+$navy-400: #486C90;
+$navy-500: #2B4F72;
+$navy-600: #1C3C5C;
+$navy-700: #122D47;
+$navy-800: #0D2035;
+$navy-900: #081526;
+
+// ── Semantic ────────────────────────────────────────────────────────
+$ok:    #10B981;
+$ok-l:  #D1FAE5;
+$ok-d:  #064E3B;
+$hi:    #EF4444;
+$hi-l:  #FEE2E2;
+$hi-d:  #7F1D1D;
+$lo:    #F59E0B;
+$lo-l:  #FEF3C7;
+$lo-d:  #78350F;
+$info:  #3B82F6;
+$info-l: #DBEAFE;
+$info-d: #1E3A8A;
+
+// ── Surface ───────────────────────────────────────────────────────────
+$bg:       #EFF4F8;
+$card:     #FFFFFF;
+$sunken:   #E5EDF3;
+$elevated: #FFFFFF;
+
+// ── Border ────────────────────────────────────────────────────────────
+$border-s: #DDE6EE;
+$border-m: #C8D8E5;
+$border-h: #9CB4C8;
+
+// ── Text ──────────────────────────────────────────────────────────────
+$t1: #081526;
+$t2: #3D5670;
+$t3: #7A96AC;
+$t4: #B0C4D2;
+$ti: #FFFFFF;
+
+// ── Elevation (shadows) ────────────────────────────────────────────────
+$e0: none;
+$e1: 0 1px 2px rgba(8, 21, 38, 0.05);
+$e2: 0 2px 6px rgba(8, 21, 38, 0.08), 0 1px 2px rgba(8, 21, 38, 0.04);
+$e3: 0 4px 14px rgba(8, 21, 38, 0.10), 0 2px 4px rgba(8, 21, 38, 0.06);
+$e4: 0 8px 28px rgba(8, 21, 38, 0.12), 0 4px 8px rgba(8, 21, 38, 0.06);
+$e5: 0 16px 48px rgba(8, 21, 38, 0.14), 0 6px 16px rgba(8, 21, 38, 0.08);
+$et:  0 4px 18px rgba(10, 138, 126, 0.32);
+$et2: 0 8px 36px rgba(10, 138, 126, 0.40);
+
+// ── Motion ─────────────────────────────────────────────────────────────
+$fast:  120ms;
+$base:  200ms;
+$slow:  360ms;
+$xslow: 500ms;
+$spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+$eout:  cubic-bezier(0.16, 1, 0.3, 1);
+$eio:   cubic-bezier(0.45, 0, 0.55, 1);

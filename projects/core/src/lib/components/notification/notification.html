@@ -1,0 +1,38 @@
+<div
+  class="pointer-events-auto relative flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 overflow-hidden rounded-xl border-l-4 bg-white p-4 shadow-e4 transition-all duration-300 ease-eout"
+  [ngClass]="typeClasses.border"
+  [class.opacity-0]="!isVisible"
+  [class.translate-x-4]="!isVisible"
+  aria-live="polite"
+>
+  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" [ngClass]="typeClasses.iconBg">
+    <svg class="h-5 w-5" [ngClass]="typeClasses.iconText" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="iconPath" />
+    </svg>
+  </div>
+
+  <div class="min-w-0 flex-1 pt-0.5">
+    <p class="text-caption font-bold uppercase tracking-wide text-type-3">{{ typeLabel }}</p>
+    <p *ngIf="notification.title" class="mt-0.5 text-sm font-semibold text-type-1">{{ notification.title }}</p>
+    <p class="mt-0.5 break-words text-sm text-type-2">{{ notification.message }}</p>
+  </div>
+
+  <button
+    *ngIf="notification.dismissible"
+    type="button"
+    class="shrink-0 rounded-md p-1 text-type-3 transition-colors hover:bg-surface-sunken hover:text-type-1"
+    (click)="handleDismiss()"
+    aria-label="Cerrar notificación"
+  >
+    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+
+  <div
+    *ngIf="hasAutoDismiss"
+    class="absolute bottom-0 left-0 h-0.5 w-full origin-left animate-[shrink_linear_forwards]"
+    [ngClass]="typeClasses.progress"
+    [style.animationDuration]="durationMs + 'ms'"
+  ></div>
+</div>

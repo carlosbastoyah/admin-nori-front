@@ -1,0 +1,115 @@
+@use 'tokens' as t;
+
+:root {
+  // Spacing
+  --space-1: #{t.$space-1};
+  --space-2: #{t.$space-2};
+  --space-3: #{t.$space-3};
+  --space-4: #{t.$space-4};
+  --space-5: #{t.$space-5};
+  --space-6: #{t.$space-6};
+  --space-8: #{t.$space-8};
+  --space-10: #{t.$space-10};
+  --space-12: #{t.$space-12};
+  --space-16: #{t.$space-16};
+  --space-20: #{t.$space-20};
+  --space-touch: #{t.$space-touch};
+
+  // Typography
+  --font-size-caption: #{t.$font-size-caption};
+  --font-size-xs: #{t.$font-size-xs};
+  --font-size-sm: #{t.$font-size-sm};
+  --font-size-base: #{t.$font-size-base};
+  --font-size-lg: #{t.$font-size-lg};
+  --font-size-xl: #{t.$font-size-xl};
+  --font-size-2xl: #{t.$font-size-2xl};
+  --font-size-3xl: #{t.$font-size-3xl};
+  --font-size-4xl: #{t.$font-size-4xl};
+  --font-sans: #{t.$font-sans};
+  --font-heading: #{t.$font-heading};
+  --font-mono: #{t.$font-mono};
+
+  // Border radius
+  --radius-sm: #{t.$radius-sm};
+  --radius-md: #{t.$radius-md};
+  --radius-lg: #{t.$radius-lg};
+  --radius-xl: #{t.$radius-xl};
+  --radius-2xl: #{t.$radius-2xl};
+  --radius-3xl: #{t.$radius-3xl};
+  --radius-full: #{t.$radius-full};
+
+  // Brand: Teal
+  --teal-50: #{t.$teal-50};
+  --teal-100: #{t.$teal-100};
+  --teal-200: #{t.$teal-200};
+  --teal-300: #{t.$teal-300};
+  --teal-400: #{t.$teal-400};
+  --teal-500: #{t.$teal-500};
+  --teal-600: #{t.$teal-600};
+  --teal-700: #{t.$teal-700};
+  --teal-800: #{t.$teal-800};
+  --teal-900: #{t.$teal-900};
+
+  // Neutral: Navy
+  --navy-50: #{t.$navy-50};
+  --navy-100: #{t.$navy-100};
+  --navy-200: #{t.$navy-200};
+  --navy-300: #{t.$navy-300};
+  --navy-400: #{t.$navy-400};
+  --navy-500: #{t.$navy-500};
+  --navy-600: #{t.$navy-600};
+  --navy-700: #{t.$navy-700};
+  --navy-800: #{t.$navy-800};
+  --navy-900: #{t.$navy-900};
+
+  // Semantic (ok, hi, lo, info)
+  --ok: #{t.$ok};
+  --ok-l: #{t.$ok-l};
+  --ok-d: #{t.$ok-d};
+  --hi: #{t.$hi};
+  --hi-l: #{t.$hi-l};
+  --hi-d: #{t.$hi-d};
+  --lo: #{t.$lo};
+  --lo-l: #{t.$lo-l};
+  --lo-d: #{t.$lo-d};
+  --info: #{t.$info};
+  --info-l: #{t.$info-l};
+  --info-d: #{t.$info-d};
+
+  // Surface
+  --bg: #{t.$bg};
+  --card: #{t.$card};
+  --sunken: #{t.$sunken};
+  --elevated: #{t.$elevated};
+
+  // Border
+  --border-s: #{t.$border-s};
+  --border-m: #{t.$border-m};
+  --border-h: #{t.$border-h};
+
+  // Text
+  --t1: #{t.$t1};
+  --t2: #{t.$t2};
+  --t3: #{t.$t3};
+  --t4: #{t.$t4};
+  --ti: #{t.$ti};
+
+  // Elevation
+  --e0: #{t.$e0};
+  --e1: #{t.$e1};
+  --e2: #{t.$e2};
+  --e3: #{t.$e3};
+  --e4: #{t.$e4};
+  --e5: #{t.$e5};
+  --et: #{t.$et};
+  --et2: #{t.$et2};
+
+  // Motion
+  --fast: #{t.$fast};
+  --base: #{t.$base};
+  --slow: #{t.$slow};
+  --xslow: #{t.$xslow};
+  --spring: #{t.$spring};
+  --eout: #{t.$eout};
+  --eio: #{t.$eio};
+}
