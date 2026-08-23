@@ -19,12 +19,12 @@
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="off" novalidate class="flex flex-col gap-4">
         <!-- Usuario -->
         <div class="flex flex-col gap-1.5">
-          <label for="login" class="text-xs font-bold uppercase tracking-wide text-type-2">Usuario o correo</label>
+          <label for="email" class="text-xs font-bold uppercase tracking-wide text-type-2">Usuario o correo</label>
           <div
             class="flex items-center rounded-xl border-[1.5px] bg-surface-bg transition-all duration-base"
-            [class.border-border-s]="!isFieldInvalid('login')"
-            [class.border-hi]="isFieldInvalid('login')"
-            [class.bg-hi-light]="isFieldInvalid('login')"
+            [class.border-border-s]="!isFieldInvalid('email')"
+            [class.border-hi]="isFieldInvalid('email')"
+            [class.bg-hi-light]="isFieldInvalid('email')"
           >
             <span class="flex items-center pl-4 text-type-3">
               <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
@@ -33,15 +33,15 @@
               </svg>
             </span>
             <input
-              id="login"
+              id="email"
               type="text"
-              formControlName="login"
+              formControlName="email"
               placeholder="Usuario"
               autocomplete="username"
               class="w-full bg-transparent px-3 py-2.5 text-sm text-type-1 outline-none placeholder:text-type-3"
             />
           </div>
-          <p *ngIf="isFieldInvalid('login')" class="text-xs text-hi">Por favor ingresa un usuario válido</p>
+          <p *ngIf="isFieldInvalid('email')" class="text-xs text-hi">Por favor ingresa un usuario válido</p>
         </div>
 
         <!-- Contraseña -->

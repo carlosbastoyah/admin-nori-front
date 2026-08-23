@@ -6,7 +6,7 @@ import { ConfigService } from '../config.service';
 import { Router } from '@angular/router';
 
 export interface LoginRequest {
-    login: string;
+    email: string;
     password: string;
 }
 
@@ -42,11 +42,11 @@ export interface AuthResponse {
     accessToken: string;
     expiresInSeconds?: number;
     tokenType?: string;
-    userName?: string;
     clientCode?: string;
     roles?: string[];
     permissions?: Permission[];
     navigation?: Navigation;
+    name?: string;
 }
 
 export interface MeResponse {
@@ -62,7 +62,6 @@ export interface MeResponse {
 
 /** User/session data used in UI (from login/refresh or from /me). */
 export interface CurrentUser {
-    userName?: string;
     name?: string;
     email?: string;
     userId?: string;
@@ -83,7 +82,7 @@ const STORAGE_KEY_CLIENT_CODE = 'client_code';
     providedIn: 'root'
 })
 export class AuthService {
-    private static readonly apiURL = 'administration/auth';
+    private static readonly apiURL = 'administration/admin/auth';
 
     private readonly currentUserSubject: BehaviorSubject<CurrentUser | null>;
     public readonly currentUser$: Observable<CurrentUser | null>;
@@ -183,7 +182,6 @@ export class AuthService {
                         userId: response.userId,
                         email: response.email,
                         name: response.name,
-                        userName: response.name,
                         clientId: response.clientId,
                         clientCode: response.clientCode,
                         roles: response.roles,
@@ -264,8 +262,7 @@ export class AuthService {
 
     private authResponseToCurrentUser(response: AuthResponse): CurrentUser {
         return {
-            userName: response.userName,
-            name: response.userName,
+            name: response.name,
             clientCode: response.clientCode,
             roles: response.roles,
             permissions: response.permissions ?? [],

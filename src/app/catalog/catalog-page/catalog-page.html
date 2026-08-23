@@ -1,0 +1,118 @@
+<div class="mx-auto max-w-7xl px-6 py-8">
+  <div class="mb-6">
+    <h1 class="font-heading text-2xl font-semibold text-type-1">Catálogo de planes</h1>
+    <p *ngIf="catalog" class="mt-1 text-sm text-type-2">{{ catalog.catalogName }} · vigente desde {{ catalog.effectiveFrom | date: 'dd/MM/yyyy' }}</p>
+  </div>
+
+  <div *ngIf="isLoading" class="rounded-2xl bg-white p-8 text-center text-sm text-type-3 shadow-e1">Cargando catálogo…</div>
+  <div *ngIf="errorMessage" class="mb-4 rounded-lg border border-hi bg-hi-light px-4 py-3 text-sm text-hi">{{ errorMessage }}</div>
+
+  <ng-container *ngIf="catalog && !isLoading">
+    <!-- Plans -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div *ngFor="let plan of catalog.plans" class="flex flex-col rounded-2xl bg-white p-5 shadow-e1">
+        <h2 class="font-heading text-lg font-semibold text-navy-800">{{ plan.name }}</h2>
+        <p class="mt-1 font-mono text-xl font-semibold text-type-1">
+          {{ plan.monthlyBasePrice != null ? formatMXN(plan.monthlyBasePrice) + '/mes' : 'A medida' }}
+        </p>
+        <p *ngIf="plan.description" class="mt-2 text-sm text-type-2">{{ plan.description }}</p>
+
+        <dl class="mt-4 space-y-1.5 text-xs text-type-2">
+          <div class="flex justify-between"><dt>Almacenamiento</dt><dd class="font-semibold text-type-1">{{ plan.storageIncludedGb != null ? plan.storageIncludedGb + ' GB' : 'A negociar' }}</dd></div>
+          <div class="flex justify-between"><dt>Soporte</dt><dd class="font-semibold text-type-1">{{ plan.supportLevel }}</dd></div>
+          <div class="flex justify-between"><dt>Analytics</dt><dd class="font-semibold text-type-1">{{ plan.analyticsLevel }}</dd></div>
+          <div *ngIf="plan.cfdiStampUnitPrice != null" class="flex justify-between"><dt>Timbre CFDI</dt><dd class="font-semibold text-type-1">{{ formatMXN(plan.cfdiStampUnitPrice) }}</dd></div>
+        </dl>
+
+        <div class="mt-4 flex-1 border-t border-border-s pt-3">
+          <p class="text-xs font-bold uppercase tracking-wide text-type-3">Módulos</p>
+          <ul class="mt-2 space-y-1.5">
+            <li *ngFor="let rule of plan.addOnRules" class="flex items-center justify-between text-xs">
+              <span class="text-type-2">{{ rule.addOnName }}</span>
+              <span [class]="badgeClass(rule.availability === 'Included' ? 'ok' : rule.availability === 'Optional' ? 'info' : 'neutral')">{{ availabilityLabel(rule.availability) }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <button
+          type="button"
+          (click)="quoteFromPlan(plan.code)"
+          class="mt-4 rounded-xl border border-teal-500 px-4 py-2 text-sm font-semibold text-teal-700 transition-colors hover:bg-teal-50"
+        >Cotizar este plan</button>
+      </div>
+    </div>
+
+    <!-- Case tiers -->
+    <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-e1">
+      <h2 class="px-6 pt-6 font-heading text-base font-semibold text-type-1">Tarifa por caso (tramos)</h2>
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-border-s bg-surface-bg">
+              <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Tramo</th>
+              <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Desde</th>
+              <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Hasta</th>
+              <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Precio unitario</th>
+              <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let tier of catalog.caseTiers" class="border-b border-border-s last:border-0">
+              <td class="px-6 py-3 font-semibold text-type-1">Tramo {{ tier.tierOrder }}</td>
+              <td class="px-6 py-3 text-type-2">{{ tier.fromCaseCount }}</td>
+              <td class="px-6 py-3 text-type-2">{{ tier.toCaseCount ?? '—' }}</td>
+              <td class="px-6 py-3 font-mono text-type-1">{{ formatMXN(tier.unitPrice) }}</td>
+              <td class="px-6 py-3">
+                <span *ngIf="tier.requiresNegotiation" [class]="badgeClass('warn')">Requiere negociación</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="h-4"></div>
+    </div>
+
+    <!-- Compare tool -->
+    <div class="mt-6 rounded-2xl bg-white p-6 shadow-e1">
+      <h2 class="font-heading text-base font-semibold text-type-1">¿Qué plan conviene?</h2>
+      <p class="mt-1 text-sm text-type-2">Compara el total mensual de cada plan con un volumen de consumo determinado.</p>
+
+      <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold uppercase tracking-wide text-type-3">Casos/mes</label>
+          <input type="number" min="0" [(ngModel)]="compareCases" (change)="runCompare()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold uppercase tracking-wide text-type-3">Timbres CFDI</label>
+          <input type="number" min="0" [(ngModel)]="compareCfdiStamps" (change)="runCompare()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold uppercase tracking-wide text-type-3">Almacenamiento extra (GB)</label>
+          <input type="number" min="0" [(ngModel)]="compareStorageExtraGb" (change)="runCompare()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+        </div>
+        <label class="flex items-center gap-2 self-end pb-2 text-sm text-type-2">
+          <input type="checkbox" [(ngModel)]="compareBilling" (change)="runCompare()" class="h-4 w-4 rounded border-border-m text-teal-600" /> Facturación
+        </label>
+        <label class="flex items-center gap-2 self-end pb-2 text-sm text-type-2">
+          <input type="checkbox" [(ngModel)]="compareInventory" (change)="runCompare()" class="h-4 w-4 rounded border-border-m text-teal-600" /> Inventario
+        </label>
+      </div>
+
+      <div *ngIf="compareResult" class="mt-5 flex flex-col gap-2">
+        <div
+          *ngFor="let plan of compareResult.plans"
+          class="flex items-center justify-between rounded-xl border-[1.5px] px-4 py-3"
+          [class.border-ok]="plan.isCheapest"
+          [class.bg-ok-light]="plan.isCheapest"
+          [class.border-border-s]="!plan.isCheapest"
+        >
+          <span class="flex items-center gap-2 font-heading text-sm font-semibold text-navy-800">
+            {{ plan.planName }}
+            <span *ngIf="plan.isCheapest" [class]="badgeClass('ok')">Más económico</span>
+          </span>
+          <span class="font-mono text-base font-semibold text-type-1">{{ formatMXN(plan.total) }}</span>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

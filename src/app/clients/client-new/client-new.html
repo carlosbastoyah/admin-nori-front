@@ -1,0 +1,58 @@
+<div class="mx-auto max-w-lg px-6 py-8">
+  <a routerLink="/clients" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-type-3 hover:text-teal-600">
+    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Clientes
+  </a>
+
+  <div class="rounded-2xl bg-white p-6 shadow-e1">
+    <h1 class="font-heading text-xl font-semibold text-type-1">Nuevo cliente</h1>
+    <p class="mt-1 text-sm text-type-2">Da de alta el cliente antes de cotizar o activar su suscripción.</p>
+
+    <form (ngSubmit)="save()" class="mt-6 flex flex-col gap-4">
+      <div class="flex flex-col gap-1.5">
+        <label for="clientName" class="text-xs font-bold uppercase tracking-wide text-type-2">Nombre</label>
+        <input
+          id="clientName"
+          type="text"
+          [(ngModel)]="name"
+          name="name"
+          placeholder="Laboratorio clínico Ejemplo"
+          class="rounded-xl border-[1.5px] bg-surface-bg px-3 py-2.5 text-sm text-type-1 outline-none transition-all duration-base focus:border-teal-400"
+          [class.border-hi]="touched && !name.trim()"
+          [class.bg-hi-light]="touched && !name.trim()"
+          [class.border-border-s]="!(touched && !name.trim())"
+        />
+        <p *ngIf="touched && !name.trim()" class="text-xs text-hi">El nombre es requerido.</p>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label for="clientCode" class="text-xs font-bold uppercase tracking-wide text-type-2">Código</label>
+        <input
+          id="clientCode"
+          type="text"
+          [(ngModel)]="code"
+          name="code"
+          placeholder="LAB-001"
+          class="rounded-xl border-[1.5px] bg-surface-bg px-3 py-2.5 text-sm font-mono text-type-1 outline-none transition-all duration-base focus:border-teal-400"
+          [class.border-hi]="touched && !code.trim()"
+          [class.bg-hi-light]="touched && !code.trim()"
+          [class.border-border-s]="!(touched && !code.trim())"
+        />
+        <p *ngIf="touched && !code.trim()" class="text-xs text-hi">El código es requerido.</p>
+      </div>
+
+      <label class="flex cursor-pointer items-center gap-2 text-sm text-type-2">
+        <input type="checkbox" [(ngModel)]="isActive" name="isActive" class="h-4 w-4 rounded border-border-m text-teal-600 focus:ring-teal-500" />
+        Cliente activo
+      </label>
+
+      <button
+        type="submit"
+        [disabled]="isSaving"
+        class="mt-2 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-6 py-3 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+      >
+        {{ isSaving ? 'Creando…' : 'Crear cliente' }}
+      </button>
+    </form>
+  </div>
+</div>

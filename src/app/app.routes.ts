@@ -12,6 +12,34 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       { path: 'dashboard', component: Dashboard },
+      {
+        path: 'clients',
+        loadComponent: () => import('./clients/clients-list/clients-list').then((m) => m.ClientsList),
+      },
+      {
+        path: 'clients/new',
+        loadComponent: () => import('./clients/client-new/client-new').then((m) => m.ClientNew),
+      },
+      {
+        path: 'clients/:id',
+        loadComponent: () => import('./clients/client-detail/client-detail').then((m) => m.ClientDetail),
+      },
+      {
+        path: 'catalog',
+        loadComponent: () => import('./catalog/catalog-page/catalog-page').then((m) => m.CatalogPage),
+      },
+      {
+        path: 'quotes',
+        loadComponent: () => import('./quotes/quotes-list/quotes-list').then((m) => m.QuotesList),
+      },
+      {
+        path: 'quotes/new',
+        loadComponent: () => import('./quotes/quote-editor/quote-editor').then((m) => m.QuoteEditor),
+      },
+      {
+        path: 'quotes/:id',
+        loadComponent: () => import('./quotes/quote-detail/quote-detail').then((m) => m.QuoteDetail),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

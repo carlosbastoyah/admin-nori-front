@@ -1,0 +1,121 @@
+<div class="mx-auto max-w-4xl px-6 py-8">
+  <a routerLink="/quotes" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-type-3 hover:text-teal-600">
+    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Cotizaciones
+  </a>
+
+  <div *ngIf="isLoading" class="rounded-2xl bg-white p-8 text-center text-sm text-type-3 shadow-e1">Cargando cotización…</div>
+  <div *ngIf="notFound && !isLoading" class="rounded-2xl bg-white p-8 text-center text-sm text-type-3 shadow-e1">No se encontró la cotización.</div>
+
+  <ng-container *ngIf="quote && !isLoading">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-4 rounded-2xl bg-white p-6 shadow-e1">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="font-heading text-2xl font-semibold text-type-1">{{ quote.clientName || quote.prospectName || 'Cotización' }}</h1>
+          <span [class]="badgeClass(quoteStatusTone(quote.status))">{{ quoteStatusLabel(quote.status) }}</span>
+        </div>
+        <p class="mt-1 text-sm text-type-2">{{ planLabel(quote.planCode) }} · creada el {{ quote.createdAt | date: 'dd/MM/yyyy' }}</p>
+        <p *ngIf="quote.validUntil" class="mt-0.5 text-xs text-type-3">Válida hasta {{ quote.validUntil | date: 'dd/MM/yyyy' }}</p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          *ngIf="canAccept"
+          type="button"
+          (click)="accept()"
+          [disabled]="isAccepting"
+          class="rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2 disabled:opacity-60"
+        >{{ isAccepting ? 'Aceptando…' : 'Aceptar cotización' }}</button>
+
+        <button
+          *ngIf="canApplyToSubscription"
+          type="button"
+          (click)="applyToSubscription()"
+          [disabled]="isApplying"
+          class="rounded-xl border border-teal-500 px-4 py-2.5 text-sm font-semibold text-teal-700 transition-colors hover:bg-teal-50 disabled:opacity-60"
+        >{{ isApplying ? 'Aplicando…' : 'Aplicar a suscripción' }}</button>
+
+        <button
+          *ngIf="canActivateOnboarding && !showOnboardingForm"
+          type="button"
+          (click)="openOnboardingForm()"
+          class="rounded-xl border border-teal-500 px-4 py-2.5 text-sm font-semibold text-teal-700 transition-colors hover:bg-teal-50"
+        >Activar cliente</button>
+      </div>
+    </div>
+
+    <div *ngIf="quote.requiresPartnerApproval" class="mb-6 rounded-lg border border-lo bg-lo-light px-4 py-3 text-sm text-type-1">
+      Esta cotización requiere aprobación de los socios.
+    </div>
+
+    <!-- Onboarding activation form -->
+    <div *ngIf="showOnboardingForm" class="mb-6 rounded-2xl bg-white p-6 shadow-e1">
+      <h2 class="font-heading text-base font-semibold text-type-1">Activar cliente</h2>
+      <p class="mt-1 text-sm text-type-2">Crea la cuenta del cliente y su usuario administrador a partir de esta cotización.</p>
+
+      <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold uppercase tracking-wide text-type-3">Nombre del cliente</label>
+          <input type="text" [(ngModel)]="onboarding.clientName" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold uppercase tracking-wide text-type-3">Código del cliente</label>
+          <input type="text" [(ngModel)]="onboarding.clientCode" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold uppercase tracking-wide text-type-3">Nombre del administrador</label>
+          <input type="text" [(ngModel)]="onboarding.adminName" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold uppercase tracking-wide text-type-3">Correo del administrador</label>
+          <input type="email" [(ngModel)]="onboarding.adminEmail" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+        </div>
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <label class="text-xs font-bold uppercase tracking-wide text-type-3">Contraseña temporal</label>
+          <input type="password" [(ngModel)]="onboarding.adminPassword" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+        </div>
+      </div>
+
+      <div class="mt-5 flex gap-3">
+        <button
+          type="button"
+          (click)="activateOnboarding()"
+          [disabled]="isActivatingOnboarding"
+          class="rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-5 py-2.5 text-sm font-bold text-white shadow-et disabled:opacity-60"
+        >{{ isActivatingOnboarding ? 'Activando…' : 'Confirmar activación' }}</button>
+        <button type="button" (click)="cancelOnboardingForm()" class="rounded-xl border border-border-s px-5 py-2.5 text-sm font-semibold text-type-2 hover:bg-surface-bg">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Receipt -->
+    <div class="overflow-hidden rounded-2xl bg-white shadow-e1">
+      <div class="border-b border-dashed border-border-s px-6 py-5 text-center">
+        <p class="font-mono text-xs uppercase tracking-widest text-teal-600">Cotización mensual</p>
+        <h2 class="mt-1 font-heading text-xl font-semibold text-navy-800">Nori</h2>
+        <p class="mt-1 text-sm text-type-2">{{ planLabel(quote.planCode) }}</p>
+      </div>
+
+      <div class="px-6 py-4">
+        <div *ngFor="let line of quote.lineItems" class="flex items-center justify-between gap-3 py-1.5 text-xs">
+          <span class="text-type-2">{{ line.description }}</span>
+          <span class="shrink-0 font-mono text-type-1">{{ formatMXN(line.amount) }}</span>
+        </div>
+
+        <div class="my-3 border-t border-dashed border-border-s"></div>
+
+        <div class="flex justify-between py-1 text-sm font-semibold text-type-1"><span>Subtotal</span><span class="font-mono">{{ formatMXN(quote.subtotal) }}</span></div>
+        <div class="flex justify-between py-1 text-sm text-type-2"><span>IVA ({{ (quote.taxRate * 100).toFixed(0) }}%)</span><span class="font-mono">{{ formatMXN(quote.taxAmount) }}</span></div>
+      </div>
+
+      <div class="flex items-baseline justify-between border-t border-border-s bg-surface-bg px-6 py-4">
+        <span class="font-heading text-base font-semibold text-navy-800">Total del mes</span>
+        <span class="font-mono text-2xl font-bold text-navy-800">{{ formatMXN(quote.total) }}</span>
+      </div>
+    </div>
+
+    <div *ngIf="quote.notes" class="mt-6 rounded-2xl bg-white p-6 shadow-e1">
+      <h2 class="font-heading text-base font-semibold text-type-1">Notas</h2>
+      <p class="mt-2 whitespace-pre-line text-sm text-type-2">{{ quote.notes }}</p>
+    </div>
+  </ng-container>
+</div>

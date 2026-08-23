@@ -57,12 +57,50 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "projects/core/src/lib/config/environment.ts",
+                  "with": "projects/core/src/lib/config/environment.prod.ts"
+                }
+              ]
             },
             "development": {
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "dev": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "projects/core/src/lib/config/environment.ts",
+                  "with": "projects/core/src/lib/config/environment.dev.ts"
+                }
+              ]
+            },
+            "prod": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "projects/core/src/lib/config/environment.ts",
+                  "with": "projects/core/src/lib/config/environment.prod.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -75,6 +113,12 @@
             },
             "development": {
               "buildTarget": "admin-nori:build:development"
+            },
+            "dev": {
+              "buildTarget": "admin-nori:build:dev"
+            },
+            "prod": {
+              "buildTarget": "admin-nori:build:prod"
             }
           },
           "defaultConfiguration": "development"

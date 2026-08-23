@@ -75,7 +75,7 @@
         <div class="hidden items-center gap-3 sm:flex">
           <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-50 text-sm font-bold text-teal-700">{{ userInitial }}</div>
           <div class="min-w-0">
-            <p class="truncate text-sm font-semibold text-type-1">{{ currentUser?.userName || currentUser?.name || 'Usuario' }}</p>
+            <p class="truncate text-sm font-semibold text-type-1">{{ currentUser?.name || 'Usuario' }}</p>
             <p *ngIf="currentUser?.roles?.length" class="truncate text-xs text-type-3">{{ currentUser?.roles?.[0] }}</p>
           </div>
         </div>

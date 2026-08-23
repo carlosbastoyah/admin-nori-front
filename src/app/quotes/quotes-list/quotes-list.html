@@ -1,0 +1,70 @@
+<div class="mx-auto max-w-6xl px-6 py-8">
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="font-heading text-2xl font-semibold text-type-1">Cotizaciones</h1>
+      <p class="mt-1 text-sm text-type-2">{{ quotes.length }} cotización{{ quotes.length === 1 ? '' : 'es' }}</p>
+    </div>
+    <button
+      type="button"
+      (click)="newQuote()"
+      class="flex items-center gap-2 rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2"
+    >
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nueva cotización
+    </button>
+  </div>
+
+  <div class="mb-4 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-e1 sm:grid-cols-2">
+    <div class="flex flex-col gap-1">
+      <label class="text-xs font-bold uppercase tracking-wide text-type-3">Estado</label>
+      <select [(ngModel)]="status" (change)="applyFilters()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400">
+        <option value="all">Todos</option>
+        <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
+      </select>
+    </div>
+    <div class="flex flex-col gap-1">
+      <label class="text-xs font-bold uppercase tracking-wide text-type-3">Plan</label>
+      <select [(ngModel)]="planCode" (change)="applyFilters()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400">
+        <option value="all">Todos</option>
+        <option *ngFor="let p of planOptions" [value]="p.value">{{ p.label }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="mb-4 rounded-lg border border-hi bg-hi-light px-4 py-3 text-sm text-hi">{{ errorMessage }}</div>
+
+  <div class="overflow-hidden rounded-2xl bg-white shadow-e1">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-border-s bg-surface-bg">
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Cliente / prospecto</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Plan</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Estado</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Total</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Creada</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let quote of quotes" (click)="openQuote(quote)" class="cursor-pointer border-b border-border-s last:border-0 hover:bg-surface-bg">
+            <td class="px-5 py-3.5 font-semibold text-type-1">{{ quote.clientName || quote.prospectName || '—' }}</td>
+            <td class="px-5 py-3.5 text-type-2">{{ planLabel(quote.planCode) }}</td>
+            <td class="px-5 py-3.5"><span [class]="badgeClass(quoteStatusTone(quote.status))">{{ quoteStatusLabel(quote.status) }}</span></td>
+            <td class="px-5 py-3.5 font-mono text-type-1">{{ formatMXN(quote.total) }}</td>
+            <td class="px-5 py-3.5 text-type-2">{{ quote.createdAt | date: 'dd/MM/yyyy' }}</td>
+            <td class="px-5 py-3.5 text-right text-type-3">
+              <svg class="ml-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </td>
+          </tr>
+          <tr *ngIf="!isLoading && quotes.length === 0">
+            <td colspan="6" class="px-5 py-10 text-center text-sm text-type-3">No hay cotizaciones con estos filtros.</td>
+          </tr>
+          <tr *ngIf="isLoading">
+            <td colspan="6" class="px-5 py-10 text-center text-sm text-type-3">Cargando cotizaciones…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

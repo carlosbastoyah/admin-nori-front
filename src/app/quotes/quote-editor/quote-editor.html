@@ -1,0 +1,252 @@
+<div class="mx-auto max-w-6xl px-6 py-8">
+  <a routerLink="/quotes" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-type-3 hover:text-teal-600">
+    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Cotizaciones
+  </a>
+
+  <div class="mb-6">
+    <h1 class="font-heading text-2xl font-semibold text-type-1">Nueva cotización</h1>
+    <p class="mt-1 text-sm text-type-2">Cuota base + tarifa por caso por tramos — precios en pesos mexicanos</p>
+  </div>
+
+  <div *ngIf="isLoadingCatalog" class="rounded-2xl bg-white p-8 text-center text-sm text-type-3 shadow-e1">Cargando catálogo…</div>
+
+  <div *ngIf="catalog && !isLoadingCatalog" class="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+    <!-- LEFT: controls -->
+    <div class="flex flex-col gap-6">
+      <!-- Client / prospect -->
+      <div class="rounded-2xl bg-white p-6 shadow-e1">
+        <label class="text-xs font-bold uppercase tracking-wide text-type-3">1 · Cliente o prospecto</label>
+
+        <div *ngIf="clientId" class="mt-2 flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+          <svg class="h-4 w-4 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="text-sm font-semibold text-navy-800">{{ clientName || 'Cliente' }}</span>
+        </div>
+
+        <input
+          *ngIf="!clientId"
+          type="text"
+          [(ngModel)]="prospectName"
+          placeholder="Nombre del prospecto"
+          class="mt-2 w-full rounded-lg border border-border-s bg-surface-bg px-3 py-2.5 text-sm text-type-1 outline-none focus:border-teal-400"
+        />
+      </div>
+
+      <!-- Plan -->
+      <div class="rounded-2xl bg-white p-6 shadow-e1">
+        <label class="text-xs font-bold uppercase tracking-wide text-type-3">2 · Plan</label>
+        <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <button
+            *ngFor="let plan of catalog.plans"
+            type="button"
+            (click)="selectPlan(plan.code)"
+            class="rounded-xl border-[1.5px] p-3 text-left transition-colors"
+            [class.border-navy-700]="planCode === plan.code"
+            [class.bg-teal-50]="planCode === plan.code"
+            [class.border-border-s]="planCode !== plan.code"
+          >
+            <span class="block font-heading text-sm font-semibold text-navy-800">{{ plan.name }}</span>
+            <span class="mt-1 block font-mono text-xs text-type-3">{{ plan.monthlyBasePrice != null ? formatMXN(plan.monthlyBasePrice) + '/mes' : 'A medida' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Casos -->
+      <div class="rounded-2xl bg-white p-6 shadow-e1">
+        <label class="text-xs font-bold uppercase tracking-wide text-type-3">3 · Casos procesados este mes</label>
+        <div class="mt-3 flex items-center gap-4">
+          <input type="range" min="0" max="6000" step="10" [(ngModel)]="estimatedCases" (input)="scheduleRecalc()" class="flex-1 accent-teal-500" />
+          <span class="min-w-[92px] text-right font-mono text-xl font-semibold text-navy-800">{{ estimatedCases | number: '1.0-0' }}</span>
+        </div>
+        <input
+          type="number"
+          min="0"
+          [(ngModel)]="estimatedCases"
+          (input)="scheduleRecalc()"
+          class="mt-2 w-full rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400"
+        />
+        <p class="mt-2 text-xs text-type-3">El deslizador llega hasta 6,000 · escribe un número mayor arriba si lo necesitas.</p>
+      </div>
+
+      <!-- Standard add-ons -->
+      <div *ngIf="!isEnterprise" class="rounded-2xl bg-white p-6 shadow-e1">
+        <label class="text-xs font-bold uppercase tracking-wide text-type-3">4 · Módulos</label>
+
+        <div *ngIf="addOnRule('billing') as rule" class="flex items-center justify-between border-t border-border-s py-3">
+          <div>
+            <p class="text-sm font-semibold text-type-1">Facturación (CFDI)</p>
+            <p class="text-xs text-type-3">{{ rule.availability === 'Included' ? 'Incluida en este plan' : (rule.discountPercent ? 'Add-on con ' + (rule.discountPercent * 100) + '% de descuento' : 'Add-on mensual · ' + formatMXN(rule.listPrice)) }}</p>
+          </div>
+          <span *ngIf="rule.availability === 'Included'" [class]="badgeClass('info')">Incluido</span>
+          <button
+            *ngIf="rule.availability === 'Optional'"
+            type="button"
+            (click)="toggleBilling()"
+            class="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+            [class.bg-teal-500]="billingAddOnOn"
+            [class.bg-border-m]="!billingAddOnOn"
+          >
+            <span class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform" [class.translate-x-5]="billingAddOnOn"></span>
+          </button>
+        </div>
+
+        <div *ngIf="addOnRule('inventory') as rule" class="flex items-center justify-between border-t border-border-s py-3">
+          <div>
+            <p class="text-sm font-semibold text-type-1">Inventario</p>
+            <p class="text-xs text-type-3">{{ rule.availability === 'Included' ? 'Incluido en este plan' : 'Add-on mensual · ' + formatMXN(rule.listPrice) }}</p>
+          </div>
+          <span *ngIf="rule.availability === 'Included'" [class]="badgeClass('info')">Incluido</span>
+          <button
+            *ngIf="rule.availability === 'Optional'"
+            type="button"
+            (click)="toggleInventory()"
+            class="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+            [class.bg-teal-500]="inventoryAddOnOn"
+            [class.bg-border-m]="!inventoryAddOnOn"
+          >
+            <span class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform" [class.translate-x-5]="inventoryAddOnOn"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Enterprise custom terms -->
+      <div *ngIf="isEnterprise" class="rounded-2xl border-[1.5px] border-dashed border-lo bg-lo-light p-6 shadow-e1">
+        <label class="text-xs font-bold uppercase tracking-wide text-type-3">4 · Cotización personalizada</label>
+        <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs uppercase tracking-wide text-type-3">Cuota base negociada (MXN/mes)</label>
+            <input type="number" min="0" step="100" [(ngModel)]="enterpriseTerms.negotiatedBasePrice" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs uppercase tracking-wide text-type-3">Tarifa por caso negociada (MXN)</label>
+            <input type="number" min="0" step="0.10" [(ngModel)]="enterpriseTerms.negotiatedCaseUnitPrice" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs uppercase tracking-wide text-type-3">Tarifa por timbre (MXN)</label>
+            <input type="number" min="0" step="0.10" [(ngModel)]="enterpriseTerms.negotiatedCfdiStampPrice" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs uppercase tracking-wide text-type-3">Almacenamiento incluido (GB)</label>
+            <input type="number" min="0" step="50" [(ngModel)]="enterpriseTerms.storageIncludedGb" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs uppercase tracking-wide text-type-3">Bloque extra (GB)</label>
+            <input type="number" min="0" step="10" [(ngModel)]="enterpriseTerms.storageBlockSizeGb" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs uppercase tracking-wide text-type-3">Precio por bloque extra (MXN)</label>
+            <input type="number" min="0" step="5" [(ngModel)]="enterpriseTerms.storageBlockPrice" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-4 border-t border-border-s pt-4">
+          <label class="flex items-center gap-2 text-sm text-type-2"><input type="checkbox" [(ngModel)]="enterpriseTerms.billingIncluded" (change)="scheduleRecalc()" class="h-4 w-4 rounded border-border-m text-teal-600" /> Facturación incluida</label>
+          <label class="flex items-center gap-2 text-sm text-type-2"><input type="checkbox" [(ngModel)]="enterpriseTerms.inventoryIncluded" (change)="scheduleRecalc()" class="h-4 w-4 rounded border-border-m text-teal-600" /> Inventario incluido</label>
+          <label class="flex items-center gap-2 text-sm text-type-2"><input type="checkbox" [(ngModel)]="enterpriseTerms.analyticsIncluded" (change)="scheduleRecalc()" class="h-4 w-4 rounded border-border-m text-teal-600" /> Analytics incluido</label>
+        </div>
+      </div>
+
+      <!-- Consumo -->
+      <div class="rounded-2xl bg-white p-6 shadow-e1">
+        <label class="text-xs font-bold uppercase tracking-wide text-type-3">5 · Consumo del mes</label>
+        <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-type-3">Timbres CFDI emitidos</label>
+            <input type="number" min="0" step="10" [(ngModel)]="estimatedCfdiStamps" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-type-3">Almacenamiento extra (GB)</label>
+            <input type="number" min="0" step="10" [(ngModel)]="estimatedStorageExtraGb" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="rounded-2xl bg-white p-6 shadow-e1">
+        <label class="text-xs font-bold uppercase tracking-wide text-type-3">6 · Detalles de la cotización</label>
+        <div class="mt-3 flex flex-col gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-type-3">Válida hasta</label>
+            <input type="date" [(ngModel)]="validUntil" class="w-full max-w-xs rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-type-3">Notas (sedes, integraciones, SLA)</label>
+            <textarea [(ngModel)]="notes" rows="3" class="w-full rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: receipt -->
+    <div class="flex flex-col gap-4 lg:sticky lg:top-6">
+      <div class="overflow-hidden rounded-2xl bg-white shadow-e3">
+        <div class="border-b border-dashed border-border-s px-6 py-5 text-center">
+          <p class="font-mono text-xs uppercase tracking-widest text-teal-600">Cotización mensual</p>
+          <h2 class="mt-1 font-heading text-xl font-semibold text-navy-800">Nori</h2>
+          <p class="mt-1 text-sm text-type-2">{{ selectedPlan?.name }}</p>
+        </div>
+
+        <div *ngIf="pricing?.requiresPartnerApproval" class="mx-6 mt-4 rounded-lg border border-lo bg-lo-light px-4 py-3 text-xs text-type-1">
+          Esta cotización requiere aprobación de los socios antes de enviarse.
+        </div>
+
+        <div class="px-6 py-4">
+          <div *ngIf="isLoadingPreview" class="py-6 text-center text-sm text-type-3">Calculando…</div>
+          <div *ngIf="previewError && !isLoadingPreview" class="rounded-lg border border-hi bg-hi-light px-4 py-3 text-sm text-hi">{{ previewError }}</div>
+
+          <ng-container *ngIf="pricing && !isLoadingPreview">
+            <div *ngFor="let line of pricing.lineItems" class="flex items-center justify-between gap-3 py-1.5 text-xs">
+              <span class="text-type-2">{{ line.description }}</span>
+              <span class="shrink-0 font-mono text-type-1">{{ formatMXN(line.amount) }}</span>
+            </div>
+
+            <div class="my-3 border-t border-dashed border-border-s"></div>
+
+            <div class="flex justify-between py-1 text-sm font-semibold text-type-1"><span>Subtotal</span><span class="font-mono">{{ formatMXN(pricing.subtotal) }}</span></div>
+            <div class="flex justify-between py-1 text-sm text-type-2"><span>IVA ({{ (pricing.taxRate * 100).toFixed(0) }}%)</span><span class="font-mono">{{ formatMXN(pricing.taxAmount) }}</span></div>
+          </ng-container>
+        </div>
+
+        <div *ngIf="pricing && !isLoadingPreview" class="flex items-baseline justify-between border-t border-border-s bg-surface-bg px-6 py-4">
+          <span class="font-heading text-base font-semibold text-navy-800">Total del mes</span>
+          <span class="font-mono text-2xl font-bold text-navy-800">{{ formatMXN(pricing.total) }}</span>
+        </div>
+      </div>
+
+      <!-- Compare -->
+      <div *ngIf="!isEnterprise && compareResult" class="rounded-2xl bg-white p-5 shadow-e1">
+        <p class="text-xs font-bold uppercase tracking-wide text-type-3">¿Qué plan conviene con este volumen?</p>
+        <div class="mt-3 flex flex-col gap-2">
+          <button
+            *ngFor="let plan of compareResult.plans"
+            type="button"
+            (click)="selectPlan(plan.planCode)"
+            class="flex items-center justify-between rounded-xl border-[1.5px] px-4 py-2.5 text-left transition-colors"
+            [class.border-ok]="plan.isCheapest"
+            [class.bg-ok-light]="plan.isCheapest"
+            [class.border-border-s]="!plan.isCheapest"
+          >
+            <span class="flex items-center gap-2 text-sm font-semibold text-navy-800">
+              {{ plan.planName }}
+              <span *ngIf="plan.isCheapest" [class]="badgeClass('ok')">Más económico</span>
+            </span>
+            <span class="font-mono text-sm font-semibold text-type-1">{{ formatMXN(plan.total) }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Save -->
+      <div class="rounded-2xl bg-white p-5 shadow-e1">
+        <p *ngIf="!clientId && !prospectName.trim()" class="mb-3 text-xs text-hi">Ingresa el nombre del prospecto o parte desde la ficha de un cliente para guardar.</p>
+        <button
+          type="button"
+          [disabled]="!canSave"
+          (click)="save()"
+          class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-6 py-3 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+        >
+          {{ isSaving ? 'Guardando…' : 'Guardar cotización' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

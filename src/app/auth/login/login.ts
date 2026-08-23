@@ -30,7 +30,7 @@ export class Login implements OnDestroy {
   readonly currentYear = new Date().getFullYear();
 
   readonly loginForm = this.formBuilder.group({
-    login: ['', [Validators.required]],
+    email: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     rememberMe: [false],
   });
@@ -69,7 +69,7 @@ export class Login implements OnDestroy {
     this.isLoading = true;
 
     const credentials: LoginRequest = {
-      login: this.loginForm.get('login')?.value ?? '',
+      email: this.loginForm.get('email')?.value ?? '',
       password: this.loginForm.get('password')?.value ?? '',
     };
 
