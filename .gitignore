@@ -1,1 +1,34 @@
-node_modules
+# Dependencies
+/node_modules
+
+# Angular / build
+/.angular
+/dist
+/tmp
+/out-tsc
+*.tsbuildinfo
+
+# IDEs and editors
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs and env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.*
+!.env.example
