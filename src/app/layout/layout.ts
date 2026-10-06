@@ -5,7 +5,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs/operators';
 import { AuthService } from '@nori/core';
 
-type SidebarIcon = 'home' | 'users' | 'shield' | 'settings' | 'building' | 'layers' | 'receipt';
+type SidebarIcon = 'home' | 'users' | 'shield' | 'settings' | 'building' | 'layers' | 'receipt' | 'download';
 
 interface SidebarNavItem {
   label: string;
@@ -22,6 +22,7 @@ const ICON_PATHS: Record<SidebarIcon, string> = {
   building: 'M4 21V7a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v14 M12 21V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v18 M4 21h16 M7 10h1 M7 14h1 M15 7h1 M15 11h1 M15 15h1',
   layers: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
   receipt: 'M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z M15 2v5h5 M8 13h8 M8 17h8 M8 9h3',
+  download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3',
 };
 
 @Component({
@@ -43,6 +44,7 @@ export class Layout {
     { label: 'Clientes', icon: 'building', route: '/clients' },
     { label: 'Catálogo', icon: 'layers', route: '/catalog' },
     { label: 'Cotizaciones', icon: 'receipt', route: '/quotes' },
+    { label: 'Versiones de escritorio', icon: 'download', route: '/releases' },
     // { label: 'Usuarios', icon: 'users' },
     // { label: 'Roles y permisos', icon: 'shield' },
     // { label: 'Configuración', icon: 'settings' },

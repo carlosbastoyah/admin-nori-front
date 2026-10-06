@@ -40,6 +40,10 @@ export const routes: Routes = [
         path: 'quotes/:id',
         loadComponent: () => import('./quotes/quote-detail/quote-detail').then((m) => m.QuoteDetail),
       },
+      {
+        path: 'releases',
+        loadComponent: () => import('./releases/releases-list/releases-list').then((m) => m.ReleasesList),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

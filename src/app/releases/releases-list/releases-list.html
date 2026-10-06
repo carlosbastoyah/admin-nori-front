@@ -1,0 +1,130 @@
+<div class="w-full px-6 py-8">
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="font-heading text-2xl font-semibold text-type-1">Versiones de escritorio</h1>
+      <p class="mt-1 text-sm text-type-2">
+        <ng-container *ngIf="latestPublished; else noneLive">
+          Las apps instaladas reciben <span class="font-semibold text-type-1">Nori {{ latestPublished.version }}</span>.
+        </ng-container>
+        <ng-template #noneLive>Ninguna versión publicada todavía.</ng-template>
+        Las compilaciones llegan como borrador y solo se distribuyen al publicarlas.
+      </p>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="mb-4 rounded-lg border border-hi bg-hi-light px-4 py-3 text-sm text-hi">{{ errorMessage }}</div>
+
+  <div class="overflow-hidden rounded-2xl bg-white shadow-e1">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-border-s bg-surface-bg">
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Versión</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Estado</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Plataformas</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Obligatoria</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Fechas</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let release of items">
+            <tr class="border-b border-border-s align-top last:border-0">
+              <td class="px-5 py-3.5">
+                <p class="font-mono font-semibold text-type-1">{{ release.version }}</p>
+                <p *ngIf="editingId !== release.id" class="mt-1 max-w-sm whitespace-pre-line text-xs text-type-2">
+                  {{ release.notes || 'Sin notas' }}
+                </p>
+              </td>
+              <td class="px-5 py-3.5">
+                <span [class]="badgeClass(statusTone(release.status))">{{ statusLabel(release.status) }}</span>
+                <p *ngIf="release.filesDeletedAt" class="mt-1 text-xs text-type-3">Instaladores eliminados</p>
+              </td>
+              <td class="px-5 py-3.5">
+                <ul class="space-y-0.5 text-xs text-type-2">
+                  <li *ngFor="let asset of release.assets">
+                    {{ platformLabel(asset.platform) }}
+                    <span *ngIf="asset.sizeBytes" class="text-type-3">· {{ sizeLabel(asset.sizeBytes) }}</span>
+                  </li>
+                </ul>
+              </td>
+              <td class="px-5 py-3.5">
+                <label class="inline-flex cursor-pointer items-center gap-2 text-xs text-type-2">
+                  <input
+                    type="checkbox"
+                    [checked]="release.isMandatory"
+                    [disabled]="busyId === release.id"
+                    (change)="toggleMandatory(release)"
+                    class="h-4 w-4 accent-teal-700"
+                  />
+                  {{ release.isMandatory ? 'Sí' : 'No' }}
+                </label>
+              </td>
+              <td class="px-5 py-3.5 text-xs text-type-2">
+                <p>Creada {{ release.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+                <p *ngIf="release.publishedAt">Publicada {{ release.publishedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+              </td>
+              <td class="px-5 py-3.5">
+                <div class="flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    (click)="startEditNotes(release)"
+                    [disabled]="busyId === release.id || editingId === release.id"
+                    class="rounded-lg border border-border-s px-3 py-1.5 text-xs font-semibold text-type-2 transition-colors hover:bg-surface-bg disabled:cursor-not-allowed disabled:opacity-40"
+                  >Editar notas</button>
+                  <button
+                    *ngIf="release.status !== 'withdrawn'"
+                    type="button"
+                    (click)="withdraw(release)"
+                    [disabled]="busyId === release.id"
+                    class="rounded-lg border border-hi px-3 py-1.5 text-xs font-semibold text-hi transition-colors hover:bg-hi-light disabled:cursor-not-allowed disabled:opacity-40"
+                  >Retirar</button>
+                  <button
+                    *ngIf="canPublish(release)"
+                    type="button"
+                    (click)="publish(release)"
+                    [disabled]="busyId === release.id"
+                    class="rounded-lg bg-gradient-to-br from-navy-900 to-teal-700 px-3 py-1.5 text-xs font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                  >Publicar</button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="editingId === release.id" class="border-b border-border-s bg-surface-bg">
+              <td colspan="6" class="px-5 py-4">
+                <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-type-3">Notas de Nori {{ release.version }}</label>
+                <textarea
+                  [(ngModel)]="notesDraft"
+                  rows="4"
+                  maxlength="4000"
+                  placeholder="Qué cambia en esta versión (lo verán los usuarios al actualizar)"
+                  class="w-full rounded-lg border border-border-s bg-white px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400"
+                ></textarea>
+                <div class="mt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    (click)="cancelEditNotes()"
+                    class="rounded-lg border border-border-s px-3 py-1.5 text-xs font-semibold text-type-2 transition-colors hover:bg-white"
+                  >Cancelar</button>
+                  <button
+                    type="button"
+                    (click)="saveNotes(release)"
+                    [disabled]="busyId === release.id"
+                    class="rounded-lg bg-gradient-to-br from-navy-900 to-teal-700 px-3 py-1.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >Guardar notas</button>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+          <tr *ngIf="!isLoading && items.length === 0">
+            <td colspan="6" class="px-5 py-10 text-center text-sm text-type-3">
+              Aún no hay versiones. Se registran solas al crear un tag <span class="font-mono">v*</span> en el repositorio de la app.
+            </td>
+          </tr>
+          <tr *ngIf="isLoading">
+            <td colspan="6" class="px-5 py-10 text-center text-sm text-type-3">Cargando versiones…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
