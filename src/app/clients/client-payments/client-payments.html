@@ -1,0 +1,411 @@
+<div class="flex flex-col gap-6">
+  <!-- KPIs -->
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div class="rounded-2xl bg-white p-5 shadow-e1">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Por cobrar</p>
+      <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ formatMXN(outstanding()) }}</p>
+      <p class="mt-1 text-xs text-type-3">{{ openPrefacturas().length }} prefactura(s) abiertas</p>
+    </div>
+    <div class="rounded-2xl bg-white p-5 shadow-e1" [class.ring-2]="overdue() > 0" [class.ring-hi-light]="overdue() > 0">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Vencido</p>
+      <p class="mt-2 font-heading text-2xl font-semibold" [class.text-hi]="overdue() > 0" [class.text-type-1]="overdue() === 0">{{ formatMXN(overdue()) }}</p>
+      <p class="mt-1 text-xs text-type-3">Emitidas con la vigencia pasada</p>
+    </div>
+    <div class="rounded-2xl bg-white p-5 shadow-e1">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Cobrado este año</p>
+      <p class="mt-2 font-heading text-2xl font-semibold text-ok">{{ formatMXN(paidThisYear()) }}</p>
+      <p class="mt-1 text-xs text-type-3">Prefacturas pagadas</p>
+    </div>
+    <button
+      type="button"
+      (click)="missingPeriods().length && openGenerate()"
+      class="rounded-2xl bg-white p-5 text-left shadow-e1 transition-shadow hover:shadow-e2"
+      [class.cursor-default]="missingPeriods().length === 0"
+    >
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Periodos sin prefactura</p>
+      <p class="mt-2 font-heading text-2xl font-semibold" [class.text-lo]="missingPeriods().length > 0" [class.text-type-1]="missingPeriods().length === 0">
+        {{ missingPeriods().length }}
+      </p>
+      <p class="mt-1 text-xs" [class.font-semibold]="missingPeriods().length > 0" [class.text-teal-700]="missingPeriods().length > 0" [class.text-type-3]="missingPeriods().length === 0">
+        {{ missingPeriods().length ? 'Generar la más antigua →' : 'Todo al corriente' }}
+      </p>
+    </button>
+  </div>
+
+  <!-- Periods -->
+  <section class="rounded-2xl bg-white p-6 shadow-e1">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="font-heading text-base font-semibold text-type-1">Periodos de facturación</h2>
+        <p class="mt-0.5 text-xs text-type-3">Un periodo por mes calendario desde el inicio del servicio.</p>
+      </div>
+      @if (hasSubscription()) {
+        <button
+          type="button"
+          (click)="openGenerate()"
+          class="flex items-center gap-2 rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Generar prefactura
+        </button>
+      }
+    </div>
+
+    @if (isLoading()) {
+      <p class="mt-4 text-sm text-type-3">Cargando periodos…</p>
+    } @else if (!hasSubscription()) {
+      <div class="mt-4 rounded-xl border border-dashed border-border-m bg-surface-bg px-4 py-6 text-center text-sm text-type-3">
+        El cliente necesita una suscripción activa para generar prefacturas.
+      </div>
+    } @else if (periods().length === 0) {
+      <div class="mt-4 rounded-xl border border-dashed border-border-m bg-surface-bg px-4 py-6 text-center text-sm text-type-3">
+        El servicio todavía no empieza; no hay periodos por cobrar.
+      </div>
+    } @else {
+      <ol class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        @for (period of periods(); track period.periodStart) {
+          <li class="flex flex-col gap-2 rounded-xl border p-3.5" [class]="periodTone(period)">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-semibold text-type-1">{{ monthLabel(period.periodStart) }}</span>
+              @if (period.isCurrent) {
+                <span class="rounded-full bg-navy-900 px-2 py-0.5 text-[10px] font-semibold text-white">En curso</span>
+              }
+            </div>
+            @if (period.invoiceId) {
+              <span [class]="badgeClass(statusTone(period.invoiceStatus!, period.isOverdue))" class="w-fit">{{ statusLabel(period.invoiceStatus!, period.isOverdue) }}</span>
+              <span class="font-mono text-sm text-type-1">{{ formatMXN(period.invoiceTotal) }}</span>
+              <span class="flex items-center justify-between gap-2 text-xs">
+                <span class="font-mono text-type-3">{{ period.invoiceNumber }}</span>
+                @if (prefacturaOfPeriod(period); as p) {
+                  <button type="button" (click)="download(p)" class="font-semibold text-teal-700 hover:text-teal-800" title="Descargar PDF">PDF</button>
+                }
+              </span>
+            } @else {
+              <span class="text-xs text-type-3">{{ period.isCurrent ? 'Aún en curso' : 'Sin prefactura' }}</span>
+              <button type="button" (click)="openGenerate(period)" class="mt-auto w-fit text-xs font-semibold text-teal-700 hover:text-teal-800">Generar →</button>
+            }
+          </li>
+        }
+      </ol>
+    }
+  </section>
+
+  <!-- Prefacturas -->
+  <section class="rounded-2xl bg-white shadow-e1">
+    <div class="flex flex-wrap items-center justify-between gap-3 px-6 pt-6">
+      <h2 class="font-heading text-base font-semibold text-type-1">Prefacturas</h2>
+      <div class="flex rounded-xl bg-surface-bg p-1 text-xs font-semibold" role="tablist" aria-label="Filtrar prefacturas">
+        @for (option of [{ v: 'all', l: 'Todas' }, { v: 'open', l: 'Por cobrar' }, { v: 'Paid', l: 'Pagadas' }, { v: 'Cancelled', l: 'Canceladas' }]; track option.v) {
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="statusFilter() === option.v"
+            (click)="statusFilter.set($any(option.v))"
+            class="rounded-lg px-3 py-1.5 transition-colors"
+            [class.bg-white]="statusFilter() === option.v"
+            [class.shadow-e1]="statusFilter() === option.v"
+            [class.text-type-1]="statusFilter() === option.v"
+            [class.text-type-3]="statusFilter() !== option.v"
+          >{{ option.l }}</button>
+        }
+      </div>
+    </div>
+
+    <!-- relative: keeps the sr-only header (position: absolute) inside this scroll box; without it the label
+         escapes and stretches the page, giving it a second scrollbar. -->
+    <div class="relative mt-4 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-border-s bg-surface-bg">
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Folio</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Periodo</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Emisión</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Vigencia</th>
+            <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wide text-type-3">Total</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Estado</th>
+            <th class="px-6 py-3"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of visiblePrefacturas(); track p.id) {
+            <tr class="border-b border-border-s last:border-0 hover:bg-surface-bg" [class.opacity-60]="p.status === 'Cancelled' || busyId() === p.id">
+              <td class="px-6 py-3.5 font-mono font-semibold text-type-1">{{ p.invoiceNumber }}</td>
+              <td class="px-6 py-3.5 text-type-1">{{ monthLabel(p.servicePeriodStart) }}</td>
+              <td class="px-6 py-3.5 text-type-2">{{ p.issuedAt ? shortDate(p.issuedAt) : '—' }}</td>
+              <td class="px-6 py-3.5 text-type-2" [class.text-hi]="p.isOverdue" [class.font-semibold]="p.isOverdue">{{ shortDate(p.dueDate) }}</td>
+              <td class="px-6 py-3.5 text-right font-mono text-type-1">{{ formatMXN(p.total) }}</td>
+              <td class="px-6 py-3.5">
+                <span [class]="badgeClass(statusTone(p.status, p.isOverdue))">{{ statusLabel(p.status, p.isOverdue) }}</span>
+                @if (p.status === 'Paid') {
+                  <span class="mt-1 block text-[11px] text-type-3">{{ shortDate(p.paidAt) }} · {{ paymentMethodLabel(p.paymentMethod).split(' — ')[1] || '' }}</span>
+                }
+              </td>
+              <td class="px-6 py-3.5">
+                <div class="flex items-center justify-end gap-1">
+                  <button type="button" (click)="download(p)" class="rounded-lg p-2 text-type-3 hover:bg-white hover:text-teal-700" [title]="'Descargar PDF de ' + p.invoiceNumber" [attr.aria-label]="'Descargar PDF de ' + p.invoiceNumber">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </button>
+                  @if (p.status === 'Issued' || p.status === 'Draft') {
+                    <button type="button" (click)="openPayment(p)" [disabled]="busyId() === p.id" class="hidden rounded-lg px-2.5 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50 sm:block">Registrar pago</button>
+                  }
+                  <button type="button" (click)="toggleMenu(p, $event)" [disabled]="busyId() === p.id" class="rounded-lg p-2 text-type-3 hover:bg-white hover:text-type-1 disabled:opacity-50" [attr.aria-label]="'Más acciones de ' + p.invoiceNumber" aria-haspopup="menu" [attr.aria-expanded]="openMenuId() === p.id">
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="px-6 py-10 text-center text-sm text-type-3">
+                {{ isLoading() ? 'Cargando…' : prefacturas().length ? 'No hay prefacturas con ese estado.' : 'Todavía no hay prefacturas. Genera la del primer periodo.' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Actions menu: fixed to the window so the table's scroll box cannot clip it -->
+@if (menuPrefactura(); as p) {
+  <div
+    class="fixed z-[900] w-52 overflow-hidden rounded-xl border border-border-s bg-white py-1 text-sm shadow-e3"
+    [style.top.px]="menuPosition()?.top"
+    [style.left.px]="menuPosition()?.left"
+    (click)="$event.stopPropagation()"
+    role="menu"
+    [attr.aria-label]="'Acciones de ' + p.invoiceNumber"
+  >
+    <p class="border-b border-border-s px-4 py-2 font-mono text-xs text-type-3">{{ p.invoiceNumber }}</p>
+    <button type="button" role="menuitem" (click)="view(p)" class="block w-full px-4 py-2 text-left hover:bg-surface-bg">Ver PDF</button>
+    <button type="button" role="menuitem" (click)="download(p)" class="block w-full px-4 py-2 text-left hover:bg-surface-bg">Descargar PDF</button>
+    @if (p.status === 'Draft' || p.status === 'Issued') {
+      <button type="button" role="menuitem" (click)="edit(p)" class="block w-full px-4 py-2 text-left hover:bg-surface-bg">Editar conceptos</button>
+    }
+    @if (p.status === 'Draft') {
+      <button type="button" role="menuitem" (click)="openIssue(p)" class="block w-full px-4 py-2 text-left hover:bg-surface-bg">Emitir</button>
+    }
+    @if (p.status === 'Draft' || p.status === 'Issued') {
+      <button type="button" role="menuitem" (click)="openPayment(p)" class="block w-full px-4 py-2 text-left hover:bg-surface-bg">Registrar pago</button>
+    }
+    @if (p.status === 'Paid') {
+      <button type="button" role="menuitem" (click)="revertPayment(p)" class="block w-full px-4 py-2 text-left hover:bg-surface-bg">Revertir pago</button>
+    }
+    @if (p.status === 'Draft' || p.status === 'Issued') {
+      <div class="my-1 border-t border-border-s"></div>
+      <button type="button" role="menuitem" (click)="cancel(p)" class="block w-full px-4 py-2 text-left text-lo hover:bg-lo-light">Cancelar</button>
+    }
+    @if (p.status === 'Draft' || p.status === 'Cancelled') {
+      <button type="button" role="menuitem" (click)="remove(p)" class="block w-full px-4 py-2 text-left text-hi hover:bg-hi-light">Eliminar</button>
+    }
+  </div>
+}
+
+<!-- Generate -->
+@if (isGenerateOpen()) {
+  <app-modal size="lg" title="Generar prefactura" subtitle="Se crea como borrador; la puedes editar antes de emitirla." [busy]="isGenerating()" (closed)="closeGenerate()">
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-[260px_1fr]">
+      <div class="flex flex-col gap-4">
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-type-2">Periodo</span>
+          <select name="period" [ngModel]="generatePeriod" (ngModelChange)="selectPeriod($event)" [disabled]="isLoading()" class="rounded-xl border border-border-m bg-white px-3 py-2.5 text-sm">
+            @if (isLoading()) {
+              <option value="">Cargando periodos…</option>
+            }
+            @for (period of periods(); track period.periodStart) {
+              <option [value]="period.periodStart" [disabled]="!!period.invoiceId">
+                {{ monthLabel(period.periodStart) }}{{ period.invoiceId ? ' · ' + period.invoiceNumber : period.isCurrent ? ' · en curso' : ' · sin prefactura' }}
+              </option>
+            }
+          </select>
+        </label>
+        @if (missingPeriods().length > 1) {
+          <div class="flex flex-wrap gap-1.5" aria-label="Periodos sin prefactura">
+            @for (period of missingPeriods(); track period.periodStart) {
+              <button
+                type="button"
+                (click)="selectPeriod(period.periodStart)"
+                class="rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors"
+                [class.border-teal-500]="generatePeriod === period.periodStart"
+                [class.bg-teal-50]="generatePeriod === period.periodStart"
+                [class.text-teal-700]="generatePeriod === period.periodStart"
+                [class.border-border-m]="generatePeriod !== period.periodStart"
+                [class.text-type-2]="generatePeriod !== period.periodStart"
+              >{{ monthLabel(period.periodStart) }}</button>
+            }
+          </div>
+        }
+        @if (selectedPeriod?.isCurrent) {
+          <p class="rounded-xl bg-info-light px-3 py-2 text-xs text-type-1">
+            Este mes sigue en curso: el uso se mide hasta hoy. Si lo cobras ahora, los estudios de los días restantes no se incluyen.
+          </p>
+        }
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-type-2">Estudios del periodo</span>
+          <div class="flex gap-2">
+            <input
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              name="studies"
+              [(ngModel)]="studiesOverride"
+              (ngModelChange)="onStudiesChange()"
+              (keydown.enter)="loadPreview()"
+              [placeholder]="preview()?.studiesFromUsage ? preview()!.studies : 'Captura los estudios'"
+              class="w-full rounded-xl border px-3 py-2.5 font-mono text-sm"
+              [class.border-hi]="!!studiesError"
+              [class.border-border-m]="!studiesError"
+            />
+            <button
+              type="button"
+              (click)="loadPreview()"
+              [disabled]="isPreviewing() || !!studiesError"
+              class="shrink-0 rounded-xl border px-3 text-xs font-semibold disabled:opacity-50"
+              [class.border-teal-500]="isPreviewStale()"
+              [class.bg-teal-50]="isPreviewStale()"
+              [class.text-teal-700]="isPreviewStale()"
+              [class.border-border-m]="!isPreviewStale()"
+              [class.text-type-2]="!isPreviewStale()"
+            >Recalcular</button>
+          </div>
+          <span class="text-[11px]" [class.text-hi]="!!studiesError" [class.text-type-3]="!studiesError">
+            @if (studiesError) {
+              {{ studiesError }}
+            } @else if (preview()?.studiesFromUsage) {
+              Medido del uso del laboratorio. Escribe otro número para cobrar un volumen negociado.
+            } @else if (preview()) {
+              Capturado a mano. Bórralo para volver al uso medido.
+            }
+          </span>
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-type-2">Vigencia</span>
+          <input type="date" name="due" [(ngModel)]="generateDueDate" [min]="generatePeriod" class="rounded-xl border border-border-m px-3 py-2.5 text-sm" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-type-2">Observaciones</span>
+          <textarea name="notes" [(ngModel)]="generateNotes" rows="3" maxlength="2000" placeholder="Se imprimen en la prefactura" class="rounded-xl border border-border-m px-3 py-2.5 text-sm"></textarea>
+        </label>
+      </div>
+
+      <div class="min-w-0">
+        @if (isPreviewing()) {
+          <div class="flex h-full min-h-48 items-center justify-center rounded-xl bg-surface-bg text-sm text-type-3">Calculando…</div>
+        } @else if (previewError()) {
+          <div class="rounded-xl bg-hi-light px-4 py-3 text-sm text-hi">{{ previewError() }}</div>
+        } @else if (preview(); as pv) {
+          @if (pv.usageWarning) {
+            <div class="mb-3 rounded-xl bg-lo-light px-4 py-3 text-xs text-type-1">{{ pv.usageWarning }} Captura los estudios a mano y pulsa «Recalcular»; el total de abajo los cuenta en cero.</div>
+          }
+          <p class="mb-3 text-xs text-type-3">
+            Servicio del <b class="text-type-1">{{ longDate(pv.serviceStart) }}</b> al <b class="text-type-1">{{ longDate(pv.serviceEnd) }}</b> · {{ formatNumber(pv.studies) }} estudios
+          </p>
+          <div class="overflow-hidden rounded-xl border border-border-s transition-opacity" [class.opacity-40]="isPreviewStale()">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-navy-900 text-[11px] uppercase tracking-wide text-white">
+                <tr>
+                  <th class="px-3 py-2 font-bold">Concepto</th>
+                  <th class="px-3 py-2 text-right font-bold">Cant.</th>
+                  <th class="px-3 py-2 text-right font-bold">P. unitario</th>
+                  <th class="px-3 py-2 text-right font-bold">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of pv.lines; track $index) {
+                  <tr class="border-t border-border-s align-top">
+                    <td class="px-3 py-2.5">
+                      <p class="font-semibold text-type-1">{{ line.description }}</p>
+                      @if (line.detail) {
+                        <p class="mt-0.5 text-xs text-type-3">{{ line.detail }}</p>
+                      }
+                    </td>
+                    <td class="px-3 py-2.5 text-right font-mono">{{ formatNumber(line.quantity) }}</td>
+                    <td class="px-3 py-2.5 text-right font-mono">{{ formatMXN(line.unitPrice) }}</td>
+                    <td class="px-3 py-2.5 text-right font-mono" [class.text-hi]="line.amount < 0">{{ formatMXN(line.amount) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <dl class="ml-auto mt-3 flex max-w-xs flex-col gap-1.5 text-sm">
+            <div class="flex justify-between"><dt class="text-type-3">Subtotal</dt><dd class="font-mono font-semibold">{{ formatMXN(pv.subtotal) }}</dd></div>
+            <div class="flex justify-between"><dt class="text-type-3">IVA 16%</dt><dd class="font-mono font-semibold">{{ formatMXN(pv.taxAmount) }}</dd></div>
+            <div class="flex justify-between rounded-lg bg-teal-600 px-3 py-2 text-white"><dt class="font-bold">Total MXN</dt><dd class="font-mono font-bold">{{ formatMXN(pv.total) }}</dd></div>
+          </dl>
+        }
+      </div>
+    </div>
+
+    <ng-container modal-footer>
+      @if (generateBlocker && !isPreviewing()) {
+        <span class="mr-auto text-xs text-type-3">{{ generateBlocker }}</span>
+      }
+      <button type="button" (click)="closeGenerate()" [disabled]="isGenerating()" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-type-2 hover:bg-white">Cancelar</button>
+      <button
+        type="button"
+        (click)="generate()"
+        [disabled]="!!generateBlocker || isGenerating()"
+        class="rounded-xl bg-navy-900 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+      >{{ isGenerating() ? 'Generando…' : 'Generar borrador' }}</button>
+    </ng-container>
+  </app-modal>
+}
+
+<!-- Edit -->
+@if (editing(); as p) {
+  <app-prefactura-editor [clientId]="clientId()" [prefactura]="p" (saved)="onEdited($event)" (closed)="editing.set(null)" />
+}
+
+<!-- Issue -->
+@if (issuing(); as p) {
+  <app-modal size="sm" [title]="'Emitir ' + p.invoiceNumber" subtitle="Queda como emitida y por cobrar." [busy]="busyId() === p.id" (closed)="issuing.set(null)">
+    <label class="flex flex-col gap-1.5">
+      <span class="text-xs font-bold uppercase tracking-wide text-type-2">Vigencia (fecha límite de pago)</span>
+      <input type="date" name="issueDue" [(ngModel)]="issueDueDate" [min]="p.servicePeriodStart" class="rounded-xl border border-border-m px-3 py-2.5 text-sm" />
+    </label>
+    @if (issueDueDate && issueDueDate < today) {
+      <p class="mt-3 rounded-xl bg-lo-light px-3 py-2 text-xs text-type-1">Esa vigencia ya pasó: la prefactura aparecerá como vencida en cuanto la emitas.</p>
+    }
+    @if (p.total <= 0) {
+      <p class="mt-3 rounded-xl bg-hi-light px-3 py-2 text-xs text-hi">El total es cero; edita los conceptos antes de emitirla.</p>
+    }
+    <p class="mt-3 text-sm text-type-2">Total: <b class="font-mono text-type-1">{{ formatMXN(p.total) }}</b></p>
+    <ng-container modal-footer>
+      <button type="button" (click)="issuing.set(null)" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-type-2 hover:bg-white">Cancelar</button>
+      <button type="button" (click)="issue()" [disabled]="busyId() === p.id || p.total <= 0 || (!!issueDueDate && !!p.servicePeriodStart && issueDueDate < p.servicePeriodStart)" class="rounded-xl bg-navy-900 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">Emitir</button>
+    </ng-container>
+  </app-modal>
+}
+
+<!-- Payment -->
+@if (paying(); as p) {
+  <app-modal size="sm" [title]="'Registrar pago de ' + p.invoiceNumber" [subtitle]="'Total ' + formatMXN(p.total) + ' · ' + monthLabel(p.servicePeriodStart)" [busy]="busyId() === p.id" (closed)="paying.set(null)">
+    <div class="flex flex-col gap-4">
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Fecha de pago</span>
+        <input type="date" name="paidOn" [(ngModel)]="payment.paidOn" required [max]="today" class="rounded-xl border border-border-m px-3 py-2.5 text-sm" />
+        @if (paymentError) {
+          <span class="text-[11px] text-hi">{{ paymentError }}</span>
+        }
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Forma de pago</span>
+        <select name="method" [(ngModel)]="payment.paymentMethod" class="rounded-xl border border-border-m bg-white px-3 py-2.5 text-sm">
+          @for (method of paymentMethods; track method.code) {
+            <option [value]="method.code">{{ method.label }}</option>
+          }
+        </select>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Referencia</span>
+        <input name="reference" [(ngModel)]="payment.paymentReference" maxlength="120" placeholder="Folio SPEI, número de recibo…" class="rounded-xl border border-border-m px-3 py-2.5 text-sm" />
+      </label>
+    </div>
+    <ng-container modal-footer>
+      <button type="button" (click)="paying.set(null)" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-type-2 hover:bg-white">Cancelar</button>
+      <button type="button" (click)="pay()" [disabled]="!!paymentError || busyId() === p.id" class="rounded-xl bg-ok px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">Registrar pago</button>
+    </ng-container>
+  </app-modal>
+}

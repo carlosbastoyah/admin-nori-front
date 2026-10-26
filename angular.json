@@ -41,7 +41,10 @@
               "includePaths": [
                 "projects/core/src/lib/styles"
               ]
-            }
+            },
+            "allowedCommonJsDependencies": [
+              "pdfmake"
+            ]
           },
           "configurations": {
             "production": {

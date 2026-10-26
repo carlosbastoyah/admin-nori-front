@@ -18,6 +18,8 @@
         <p *ngIf="plan.description" class="mt-2 text-sm text-type-2">{{ plan.description }}</p>
 
         <dl class="mt-4 space-y-1.5 text-xs text-type-2">
+          <div *ngIf="plan.includedStudies != null" class="flex justify-between"><dt>Estudios incluidos</dt><dd class="font-semibold text-type-1">{{ plan.includedStudies | number: '1.0-0' }}/mes</dd></div>
+          <div *ngIf="plan.extraStudyPrice != null" class="flex justify-between"><dt>Estudio extra</dt><dd class="font-semibold text-type-1">{{ formatMXN(plan.extraStudyPrice) }}</dd></div>
           <div class="flex justify-between"><dt>Almacenamiento</dt><dd class="font-semibold text-type-1">{{ plan.storageIncludedGb != null ? plan.storageIncludedGb + ' GB' : 'A negociar' }}</dd></div>
           <div class="flex justify-between"><dt>Soporte</dt><dd class="font-semibold text-type-1">{{ plan.supportLevel }}</dd></div>
           <div class="flex justify-between"><dt>Analytics</dt><dd class="font-semibold text-type-1">{{ plan.analyticsLevel }}</dd></div>
@@ -43,7 +45,7 @@
     </div>
 
     <!-- Case tiers -->
-    <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-e1">
+    <div *ngIf="catalog.caseTiers.length" class="mt-6 overflow-hidden rounded-2xl bg-white shadow-e1">
       <h2 class="px-6 pt-6 font-heading text-base font-semibold text-type-1">Tarifa por caso (tramos)</h2>
       <div class="mt-4 overflow-x-auto">
         <table class="w-full text-left text-sm">

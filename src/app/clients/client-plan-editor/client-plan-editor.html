@@ -1,0 +1,188 @@
+<div class="mt-5 flex flex-col gap-5 border-t border-border-s pt-5">
+  @if (isLoadingCatalog()) {
+    <p class="text-sm text-type-3">Cargando planes…</p>
+  } @else if (catalogError()) {
+    <div class="flex items-center justify-between gap-3 rounded-xl bg-hi-light px-4 py-3 text-sm text-hi">
+      No se pudo cargar el catálogo de planes.
+      <button type="button" (click)="loadCatalog()" class="font-semibold underline">Reintentar</button>
+    </div>
+  } @else {
+    <!-- Plan picker -->
+    <fieldset [disabled]="isSaving()">
+      <legend class="mb-2 text-xs font-bold uppercase tracking-wide text-type-2">Elige el plan</legend>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        @for (plan of plans(); track plan.code) {
+          <label
+            class="relative flex cursor-pointer flex-col gap-2 rounded-xl border-[1.5px] p-4 transition-all duration-base hover:border-teal-400"
+            [class.border-teal-500]="planCode() === plan.code"
+            [class.bg-teal-50]="planCode() === plan.code"
+            [class.ring-2]="planCode() === plan.code"
+            [class.ring-teal-100]="planCode() === plan.code"
+            [class.border-border-s]="planCode() !== plan.code"
+          >
+            <input type="radio" name="editPlan" class="sr-only" [value]="plan.code" [checked]="planCode() === plan.code" (change)="pickPlan(plan.code)" />
+            <span class="flex items-center justify-between gap-2">
+              <span class="text-sm font-bold text-type-1">{{ planName(plan) }}</span>
+              @if (isCurrent(plan)) {
+                <span class="rounded-full bg-navy-900 px-2 py-0.5 text-[11px] font-semibold text-white">Actual</span>
+              }
+            </span>
+            @if (isSelfService(plan)) {
+              <span class="font-heading text-lg font-semibold text-type-1">
+                {{ formatMXN(plan.monthlyBasePrice) }}<span class="text-xs font-normal text-type-3"> /mes</span>
+              </span>
+              <ul class="flex flex-col gap-0.5 text-xs text-type-2">
+                @if (plan.includedStudies != null) {
+                  <li>{{ plan.includedStudies }} estudios incluidos · extra {{ formatMXN(plan.extraStudyPrice) }}</li>
+                }
+                @if (plan.storageIncludedGb != null) {
+                  <li>{{ plan.storageIncludedGb }} GB de almacenamiento</li>
+                }
+                @for (rule of includedAddOns(plan); track rule.addOnCode) {
+                  <li>Incluye {{ rule.addOnName }}</li>
+                }
+              </ul>
+            } @else {
+              <span class="font-heading text-lg font-semibold text-type-1">A la medida</span>
+              <ul class="flex flex-col gap-0.5 text-xs text-type-2">
+                <li>Precio base y por estudio negociados</li>
+                <li>Pago mensual o anual</li>
+                @for (rule of includedAddOns(plan); track rule.addOnCode) {
+                  <li>Incluye {{ rule.addOnName }}</li>
+                }
+              </ul>
+              <span class="mt-auto inline-flex w-fit rounded-full bg-surface-sunken px-2 py-0.5 text-[11px] font-semibold text-type-3">Por cotización</span>
+            }
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    @if (selectedPlan(); as plan) {
+      @if (isSelectedNegotiated()) {
+        <!-- Enterprise: negotiated through a quote -->
+        <div class="flex flex-col gap-3 rounded-xl border border-teal-200 bg-teal-50 px-5 py-4">
+          <p class="text-sm font-semibold text-type-1">
+            {{ isCurrent(plan) ? 'Renegociar las condiciones de ' + planName(plan) : 'Cambiar a ' + planName(plan) }}
+          </p>
+          <ol class="list-decimal pl-5 text-sm text-type-2">
+            <li>Arma la cotización con precio base, precio por estudio, almacenamiento y ciclo de pago.</li>
+            <li>Guárdala y elige <span class="font-semibold text-type-1">Aceptar y aplicar al cliente</span>.</li>
+            <li>La suscripción actual se reemplaza por la nueva en ese momento; hasta entonces no cambia nada.</li>
+          </ol>
+          <a
+            routerLink="/quotes/new"
+            [queryParams]="{ clientId: clientId(), planCode: plan.code }"
+            class="w-fit rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-5 py-2.5 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2"
+          >
+            {{ isCurrent(plan) ? 'Crear cotización de renovación' : 'Cotizar ' + planName(plan) }}
+          </a>
+        </div>
+      } @else {
+        <!-- Self-service: add-ons -->
+        @if (optionalAddOns(plan).length || includedAddOns(plan).length) {
+          <div class="flex flex-col gap-2">
+            <span class="text-xs font-bold uppercase tracking-wide text-type-2">Módulos</span>
+            @for (rule of includedAddOns(plan); track rule.addOnCode) {
+              <div class="flex items-center justify-between gap-3 rounded-xl border border-border-s bg-surface-bg px-4 py-3 text-sm">
+                <span class="flex items-center gap-2 text-type-1">
+                  <input type="checkbox" checked disabled class="h-4 w-4 rounded border-border-m text-teal-600" />
+                  {{ rule.addOnName }}
+                </span>
+                <span class="text-xs font-semibold text-type-3">Incluido en el plan</span>
+              </div>
+            }
+            @for (rule of optionalAddOns(plan); track rule.addOnCode) {
+              <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border-s px-4 py-3 text-sm hover:bg-surface-bg">
+                <span class="flex items-center gap-2 text-type-1">
+                  <input
+                    type="checkbox"
+                    [checked]="isAddOnWanted(rule.addOnCode)"
+                    [disabled]="isSaving()"
+                    (change)="toggleAddOn(rule.addOnCode)"
+                    class="h-4 w-4 rounded border-border-m text-teal-600 focus:ring-teal-500"
+                  />
+                  {{ rule.addOnName }}
+                </span>
+                <span class="text-type-2">+ {{ formatMXN(addOnPrice(rule)) }} /mes</span>
+              </label>
+            }
+          </div>
+        }
+
+        @if (leavesContract()) {
+          <p class="rounded-xl bg-lo-light px-4 py-3 text-sm text-lo" role="alert">
+            Terminan las condiciones negociadas de {{ currentPlan() ? planName(currentPlan()!) : 'su contrato' }} (precios, descuentos e incrementos) y la facturación pasa a mensual con la tarifa de lista.
+          </p>
+        }
+        @if (dropped().length) {
+          <p class="rounded-xl bg-lo-light px-4 py-3 text-sm text-lo" role="alert">
+            Al cambiar de plan terminan:
+            @for (addOn of dropped(); track addOn.code; let lastItem = $last) {
+              {{ addOn.name }}{{ lastItem ? '' : ', ' }}
+            }
+            (el nuevo plan ya los incluye o no los vende).
+          </p>
+        }
+
+        <!-- Before / after -->
+        @if (hasChanges()) {
+          <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl bg-surface-bg px-4 py-3 text-sm">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wide text-type-3">Hoy</p>
+              <p class="mt-0.5 font-semibold text-type-1">{{ currentPlan() ? planName(currentPlan()!) : subscription().planName }}</p>
+              <p class="text-type-2">{{ currentFee() != null ? formatMXN(currentFee()) + ' /mes' : 'Condiciones negociadas' }}</p>
+            </div>
+            <svg class="h-5 w-5 text-type-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wide text-teal-700">Después</p>
+              <p class="mt-0.5 font-semibold text-type-1">{{ planName(plan) }}</p>
+              <p class="text-type-2">{{ formatMXN(newFee()) }} /mes + IVA</p>
+            </div>
+          </div>
+        }
+      }
+    }
+  }
+
+  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border-s pt-4">
+    <button
+      type="button"
+      (click)="cancelSubscription()"
+      [disabled]="isSaving()"
+      class="text-sm font-semibold text-hi hover:underline disabled:opacity-60"
+    >
+      Cancelar suscripción
+    </button>
+    <div class="flex gap-3">
+      @if (planChanged() || hasChanges()) {
+        <button
+          type="button"
+          (click)="reset()"
+          [disabled]="isSaving()"
+          class="rounded-xl px-4 py-2.5 text-sm font-semibold text-type-2 transition-colors hover:bg-surface-bg"
+        >
+          Descartar
+        </button>
+      }
+      <button
+        type="button"
+        (click)="closed.emit()"
+        [disabled]="isSaving()"
+        class="rounded-xl border border-border-s px-5 py-2.5 text-sm font-semibold text-type-2 transition-colors hover:bg-surface-bg"
+      >
+        Cerrar
+      </button>
+      @if (!isSelectedNegotiated()) {
+        <button
+          type="button"
+          (click)="save()"
+          [disabled]="isSaving() || !hasChanges()"
+          class="rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-5 py-2.5 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+        >
+          {{ isSaving() ? 'Guardando…' : saveLabel() }}
+        </button>
+      }
+    </div>
+  </div>
+</div>

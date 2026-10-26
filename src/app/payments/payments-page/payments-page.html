@@ -1,0 +1,262 @@
+<div class="w-full px-6 py-8">
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="font-heading text-2xl font-semibold text-type-1">Pagos</h1>
+      <p class="mt-1 text-sm text-type-2">Las prefacturas de todos los clientes: cobra, emite y revisa sin entrar a cada uno.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="exportCsv()"
+        [disabled]="!visible().length"
+        class="flex items-center gap-2 rounded-xl border border-border-m bg-white px-3.5 py-2 text-sm font-semibold text-type-2 transition-colors hover:bg-surface-bg disabled:opacity-50"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        Exportar CSV
+      </button>
+      <button
+        type="button"
+        (click)="reload()"
+        [disabled]="isLoading()"
+        class="flex items-center gap-2 rounded-xl border border-border-m bg-white px-3.5 py-2 text-sm font-semibold text-type-2 transition-colors hover:bg-surface-bg disabled:opacity-50"
+      >
+        <svg class="h-4 w-4" [class.animate-spin]="isLoading()" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="mb-4 rounded-lg border border-hi bg-hi-light px-4 py-3 text-sm text-hi">{{ error() }}</div>
+  }
+  @if (overview()?.failedClients?.length) {
+    <div class="mb-4 rounded-lg border border-lo bg-lo-light px-4 py-3 text-sm text-lo-dark">
+      No se pudo leer la facturación de: {{ failedNames() }}.
+    </div>
+  }
+
+  <!-- KPIs -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <button type="button" (click)="selectView('prefacturas'); selectStatus('open')" class="rounded-2xl bg-white p-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Por cobrar</p>
+      <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ formatMXN(outstanding()) }}</p>
+      <p class="mt-1 text-xs text-type-3">Borradores y emitidas</p>
+    </button>
+    <button type="button" (click)="selectView('prefacturas'); selectStatus('overdue')" class="rounded-2xl bg-white p-5 text-left shadow-e1 transition-shadow hover:shadow-e2" [class.ring-2]="overdue() > 0" [class.ring-hi-light]="overdue() > 0">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Vencido</p>
+      <p class="mt-2 font-heading text-2xl font-semibold" [class.text-hi]="overdue() > 0" [class.text-type-1]="overdue() === 0">{{ formatMXN(overdue()) }}</p>
+      <p class="mt-1 text-xs text-type-3">{{ overdueCount() }} prefactura(s) con la vigencia pasada</p>
+    </button>
+    <button type="button" (click)="selectView('prefacturas'); selectStatus('Paid')" class="rounded-2xl bg-white p-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Cobrado este mes</p>
+      <p class="mt-2 font-heading text-2xl font-semibold text-ok">{{ formatMXN(collectedThisMonth()) }}</p>
+      <p class="mt-1 text-xs text-type-3">Por la fecha del pago</p>
+    </button>
+    <button type="button" (click)="selectView('pending')" class="rounded-2xl bg-white p-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Meses sin prefactura</p>
+      <p class="mt-2 font-heading text-2xl font-semibold" [class.text-lo]="pendingCount() > 0" [class.text-type-1]="pendingCount() === 0">{{ pendingCount() }}</p>
+      <p class="mt-1 text-xs text-type-3">En {{ pending().length }} cliente(s)</p>
+    </button>
+  </div>
+
+  <!-- View switch -->
+  <div class="mt-6 flex gap-1 border-b border-border-s">
+    <button type="button" (click)="selectView('prefacturas')" class="-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold" [class.border-teal-600]="view() === 'prefacturas'" [class.text-teal-700]="view() === 'prefacturas'" [class.border-transparent]="view() !== 'prefacturas'" [class.text-type-3]="view() !== 'prefacturas'">
+      Prefacturas
+    </button>
+    <button type="button" (click)="selectView('pending')" class="-mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold" [class.border-teal-600]="view() === 'pending'" [class.text-teal-700]="view() === 'pending'" [class.border-transparent]="view() !== 'pending'" [class.text-type-3]="view() !== 'pending'">
+      Meses sin prefactura
+      @if (pendingCount()) {
+        <span class="rounded-full bg-lo-light px-2 py-0.5 text-[11px] text-lo">{{ pendingCount() }}</span>
+      }
+    </button>
+  </div>
+
+  @if (!overview() && isLoading()) {
+    <p class="mt-6 text-sm text-type-3">Leyendo la facturación de todos los clientes…</p>
+  } @else if (view() === 'prefacturas') {
+    <!-- Filters -->
+    <div class="mt-4 flex flex-wrap items-end gap-3 rounded-2xl bg-white p-4 shadow-e1">
+      <label class="flex min-w-[220px] flex-1 flex-col gap-1">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-3">Buscar</span>
+        <input type="text" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Cliente, código o folio" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-3">Año</span>
+        <select [ngModel]="year()" (ngModelChange)="selectYear($event)" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400">
+          <option value="">Todos</option>
+          @for (y of yearOptions(); track y) {
+            <option [value]="y">{{ y }}</option>
+          }
+        </select>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-3">Mes</span>
+        <select [ngModel]="month()" (ngModelChange)="month.set($event)" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400">
+          <option value="">Todos</option>
+          @for (m of monthOptions(); track m) {
+            <option [value]="m">{{ monthShortLabel(m) }}</option>
+          }
+        </select>
+      </label>
+      <div class="flex flex-wrap gap-1.5">
+        @for (f of statusFilters; track f.value) {
+          <button
+            type="button"
+            (click)="selectStatus(f.value)"
+            class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+            [class.bg-navy-900]="status() === f.value"
+            [class.text-white]="status() === f.value"
+            [class.bg-surface-bg]="status() !== f.value"
+            [class.text-type-2]="status() !== f.value"
+          >{{ f.label }}</button>
+        }
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="mt-4 overflow-hidden rounded-2xl bg-white shadow-e1">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-border-s bg-surface-bg">
+              <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Folio</th>
+              <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Cliente</th>
+              <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Periodo</th>
+              <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-type-3">Total</th>
+              <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Estado</th>
+              <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Vigencia</th>
+              <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Pago</th>
+              <th class="px-5 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of visible(); track p.id) {
+              <tr class="border-b border-border-s last:border-0 hover:bg-surface-bg" [class.opacity-60]="p.status === 'Cancelled' || busyId() === p.id">
+                <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-type-2">{{ p.invoiceNumber }}</td>
+                <td class="px-5 py-3">
+                  <a [routerLink]="['/clients', p.clientId]" [queryParams]="{ tab: 'payments' }" class="font-semibold text-type-1 hover:text-teal-700">{{ p.clientName }}</a>
+                  <p class="text-xs text-type-3">{{ p.clientCode }}</p>
+                </td>
+                <td class="whitespace-nowrap px-5 py-3 text-type-2">{{ periodLabel(p) }}</td>
+                <td class="whitespace-nowrap px-5 py-3 text-right font-mono text-type-1">{{ formatMXN(p.total) }}</td>
+                <td class="px-5 py-3"><span [class]="badgeClass(statusTone(p.status, p.isOverdue))">{{ statusLabel(p.status, p.isOverdue) }}</span></td>
+                <td class="whitespace-nowrap px-5 py-3" [class.text-hi]="p.isOverdue" [class.font-semibold]="p.isOverdue" [class.text-type-2]="!p.isOverdue">{{ shortDate(p.dueDate) }}</td>
+                <td class="px-5 py-3 text-xs text-type-2">
+                  @if (p.status === 'Paid') {
+                    <p>{{ shortDate(p.paidAt) }}</p>
+                    <p class="text-type-3">{{ paymentMethodLabel(p.paymentMethod) }}</p>
+                  } @else {
+                    —
+                  }
+                </td>
+                <td class="whitespace-nowrap px-5 py-3 text-right">
+                  <div class="flex justify-end gap-1.5">
+                    @if (p.status === 'Draft') {
+                      <button type="button" (click)="openIssue(p)" [disabled]="busyId() === p.id" class="rounded-lg border border-border-m px-2.5 py-1.5 text-xs font-semibold text-type-1 hover:bg-white">Emitir</button>
+                    }
+                    @if (p.status === 'Draft' || p.status === 'Issued') {
+                      <button type="button" (click)="openPayment(p)" [disabled]="busyId() === p.id" class="rounded-lg bg-ok px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50">Registrar pago</button>
+                    }
+                    <button type="button" (click)="viewPdf(p)" [disabled]="busyId() === p.id" title="Ver PDF" aria-label="Ver PDF" class="rounded-lg p-1.5 text-type-3 hover:bg-white hover:text-type-1">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M15 2v5h5"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="px-5 py-10 text-center text-sm text-type-3">No hay prefacturas con estos filtros.</td>
+              </tr>
+            }
+          </tbody>
+          @if (visible().length) {
+            <tfoot>
+              <tr class="border-t border-border-s bg-surface-bg">
+                <td colspan="3" class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">{{ visible().length }} prefactura(s)</td>
+                <td class="whitespace-nowrap px-5 py-3 text-right font-mono font-semibold text-type-1">{{ formatMXN(visibleTotal()) }}</td>
+                <td colspan="4"></td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+    </div>
+  } @else {
+    <!-- Months without prefactura -->
+    <div class="mt-4 flex flex-col gap-3">
+      @for (entry of pending(); track entry.client.id) {
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-5 shadow-e1">
+          <div class="min-w-0">
+            <p class="font-semibold text-type-1">{{ entry.client.name }}</p>
+            <p class="text-xs text-type-3">{{ entry.client.code }} · {{ entry.periods.length }} mes(es) sin prefactura</p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              @for (period of entry.periods; track period.periodStart) {
+                <span class="rounded-full border px-2.5 py-0.5 text-xs" [class.border-dashed]="period.isCurrent" [class.border-border-m]="period.isCurrent" [class.text-type-3]="period.isCurrent" [class.border-lo]="!period.isCurrent" [class.bg-lo-light]="!period.isCurrent" [class.text-lo]="!period.isCurrent">
+                  {{ monthShortLabel(period.periodStart.slice(0, 7)) }}{{ period.isCurrent ? ' (en curso)' : '' }}
+                </span>
+              }
+            </div>
+          </div>
+          <a [routerLink]="['/clients', entry.client.id]" [queryParams]="{ tab: 'payments' }" class="rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-et">
+            Generar prefactura →
+          </a>
+        </div>
+      } @empty {
+        <div class="rounded-2xl bg-white px-5 py-10 text-center text-sm text-type-3 shadow-e1">Todos los clientes tienen sus meses facturados.</div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Issue -->
+@if (issuing(); as p) {
+  <app-modal size="sm" [title]="'Emitir ' + p.invoiceNumber" [subtitle]="p.clientName + ' · queda emitida y por cobrar.'" [busy]="busyId() === p.id" (closed)="issuing.set(null)">
+    <label class="flex flex-col gap-1.5">
+      <span class="text-xs font-bold uppercase tracking-wide text-type-2">Vigencia (fecha límite de pago)</span>
+      <input type="date" name="issueDue" [(ngModel)]="issueDueDate" [min]="p.servicePeriodStart" class="rounded-xl border border-border-m px-3 py-2.5 text-sm" />
+    </label>
+    @if (issueDueDate && issueDueDate < today) {
+      <p class="mt-3 rounded-xl bg-lo-light px-3 py-2 text-xs text-type-1">Esa vigencia ya pasó: la prefactura aparecerá como vencida en cuanto la emitas.</p>
+    }
+    @if (p.total <= 0) {
+      <p class="mt-3 rounded-xl bg-hi-light px-3 py-2 text-xs text-hi">El total es cero; edita los conceptos en el cliente antes de emitirla.</p>
+    }
+    <p class="mt-3 text-sm text-type-2">Total: <b class="font-mono text-type-1">{{ formatMXN(p.total) }}</b></p>
+    <ng-container modal-footer>
+      <button type="button" (click)="issuing.set(null)" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-type-2 hover:bg-white">Cancelar</button>
+      <button type="button" (click)="issue()" [disabled]="busyId() === p.id || p.total <= 0 || (!!issueDueDate && !!p.servicePeriodStart && issueDueDate < p.servicePeriodStart)" class="rounded-xl bg-navy-900 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">Emitir</button>
+    </ng-container>
+  </app-modal>
+}
+
+<!-- Payment -->
+@if (paying(); as p) {
+  <app-modal size="sm" [title]="'Registrar pago de ' + p.invoiceNumber" [subtitle]="p.clientName + ' · Total ' + formatMXN(p.total) + ' · ' + periodLabel(p)" [busy]="busyId() === p.id" (closed)="paying.set(null)">
+    <div class="flex flex-col gap-4">
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Fecha de pago</span>
+        <input type="date" name="paidOn" [(ngModel)]="payment.paidOn" required [max]="today" class="rounded-xl border border-border-m px-3 py-2.5 text-sm" />
+        @if (paymentError) {
+          <span class="text-[11px] text-hi">{{ paymentError }}</span>
+        }
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Forma de pago</span>
+        <select name="method" [(ngModel)]="payment.paymentMethod" class="rounded-xl border border-border-m bg-white px-3 py-2.5 text-sm">
+          @for (method of paymentMethods; track method.code) {
+            <option [value]="method.code">{{ method.label }}</option>
+          }
+        </select>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Referencia</span>
+        <input name="reference" [(ngModel)]="payment.paymentReference" maxlength="120" placeholder="Folio SPEI, número de recibo…" class="rounded-xl border border-border-m px-3 py-2.5 text-sm" />
+      </label>
+    </div>
+    <ng-container modal-footer>
+      <button type="button" (click)="paying.set(null)" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-type-2 hover:bg-white">Cancelar</button>
+      <button type="button" (click)="pay()" [disabled]="!!paymentError || busyId() === p.id" class="rounded-xl bg-ok px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">Registrar pago</button>
+    </ng-container>
+  </app-modal>
+}

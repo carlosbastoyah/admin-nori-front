@@ -16,6 +16,9 @@ export interface Plan {
   isPublic: boolean;
   monthlyBasePrice?: number;
   storageIncludedGb?: number;
+  /** Studies the monthly fee covers; absent when the catalog bills studies by tiers. */
+  includedStudies?: number;
+  extraStudyPrice?: number;
   supportLevel: string;
   analyticsLevel: string;
   cfdiStampUnitPrice?: number;

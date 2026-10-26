@@ -6,22 +6,21 @@ import { Subject, switchMap } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { NotificationService } from '@nori/core';
 import { QuotesService } from '../quotes.service';
-import { ClientsService } from '../../clients/clients.service';
 import { ActivateOnboardingRequest, Quote } from '../models/quote.models';
 import { badgeClass, planLabel, quoteStatusLabel, quoteStatusTone } from '../../shared/utils/labels.util';
 import { formatMXN } from '../../shared/utils/format.util';
+import { BackLink } from '../../shared/directives/back-link.directive';
 
 @Component({
   selector: 'app-quote-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, BackLink],
   templateUrl: './quote-detail.html',
 })
 export class QuoteDetail implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly quotesService = inject(QuotesService);
-  private readonly clientsService = inject(ClientsService);
   private readonly notificationService = inject(NotificationService);
   private readonly destroy$ = new Subject<void>();
 
@@ -29,7 +28,6 @@ export class QuoteDetail implements OnDestroy {
   isLoading = true;
   notFound = false;
   isAccepting = false;
-  isApplying = false;
 
   showOnboardingForm = false;
   isActivatingOnboarding = false;
@@ -73,20 +71,33 @@ export class QuoteDetail implements OnDestroy {
       });
   }
 
-  get canAccept(): boolean {
+  private get isOpen(): boolean {
     return this.quote?.status === 'Draft' || this.quote?.status === 'Sent';
   }
 
-  get canApplyToSubscription(): boolean {
-    return !!this.quote && this.quote.status === 'Accepted' && !!this.quote.clientId;
+  /** Draft and sent quotes can still change; accepted ones are history. */
+  get canEdit(): boolean {
+    return this.isOpen;
   }
 
+  /** Partner approval only matters before the quote is accepted. */
+  get showPartnerApprovalNotice(): boolean {
+    return this.isOpen && !!this.quote?.requiresPartnerApproval;
+  }
+
+  /** Accepting a client's quote replaces that client's subscription with the quoted plan. */
+  get canAccept(): boolean {
+    return this.isOpen && !!this.quote?.clientId;
+  }
+
+  /** A prospect's quote becomes a client and its subscription in one step; the API refuses accepted quotes. */
   get canActivateOnboarding(): boolean {
-    return !!this.quote && this.quote.status === 'Accepted' && !this.quote.clientId;
+    return this.isOpen && !this.quote?.clientId;
   }
 
   accept(): void {
     if (!this.quote) return;
+    if (!confirm(`¿Aplicar ${this.quote.planName} a ${this.quote.clientName ?? 'el cliente'}? Su suscripción actual se reemplaza de inmediato.`)) return;
     this.isAccepting = true;
     this.quotesService
       .accept(this.quote.id)
@@ -95,30 +106,12 @@ export class QuoteDetail implements OnDestroy {
         next: (quote) => {
           this.quote = quote;
           this.isAccepting = false;
-          this.notificationService.success('Cotización aceptada.', 'Listo');
+          this.notificationService.success('La suscripción del cliente fue actualizada.', 'Listo');
+          this.router.navigate(['/clients', quote.clientId]);
         },
         error: (error) => {
           this.isAccepting = false;
-          this.notificationService.apiError(error, 'No se pudo aceptar la cotización.');
-        },
-      });
-  }
-
-  applyToSubscription(): void {
-    if (!this.quote?.clientId) return;
-    this.isApplying = true;
-    this.clientsService
-      .applyQuote(this.quote.clientId, this.quote.id)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.isApplying = false;
-          this.notificationService.success('La suscripción del cliente fue actualizada.', 'Listo');
-          this.router.navigate(['/clients', this.quote!.clientId]);
-        },
-        error: (error) => {
-          this.isApplying = false;
-          this.notificationService.apiError(error, 'No se pudo aplicar la cotización a la suscripción.');
+          this.notificationService.apiError(error, 'No se pudo aplicar la cotización.');
         },
       });
   }

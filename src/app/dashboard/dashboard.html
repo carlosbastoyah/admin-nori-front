@@ -1,23 +1,246 @@
-<div class="w-full px-6 py-10">
-  <div class="rounded-2xl bg-white p-8 shadow-e2">
-    <h1 class="font-heading text-2xl font-semibold text-type-1">
-      Bienvenido{{ currentUser?.name ? ', ' + currentUser?.name : '' }}
-    </h1>
-    <p class="mt-2 text-sm text-type-2">Sesión iniciada correctamente.</p>
-
-    <dl class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div>
-        <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Usuario</dt>
-        <dd class="mt-1 text-sm text-type-1">{{ currentUser?.name || currentUser?.email || '—' }}</dd>
-      </div>
-      <div>
-        <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Cliente</dt>
-        <dd class="mt-1 text-sm text-type-1">{{ currentUser?.clientCode || '—' }}</dd>
-      </div>
-      <div class="sm:col-span-2">
-        <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Roles</dt>
-        <dd class="mt-1 text-sm text-type-1">{{ currentUser?.roles?.join(', ') || '—' }}</dd>
-      </div>
-    </dl>
+<div class="w-full px-6 py-8">
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="font-heading text-2xl font-semibold text-type-1">
+        Hola{{ currentUser?.name ? ', ' + currentUser?.name : '' }}
+      </h1>
+      <p class="mt-1 text-sm text-type-2">Así va el negocio: lo que cobras, lo que te deben y cómo crecen tus clientes.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <select
+        [value]="period()"
+        (change)="selectPeriod($any($event.target).value)"
+        aria-label="Periodo"
+        class="rounded-xl border border-border-m bg-white px-3 py-2 text-sm font-semibold text-type-1 outline-none focus:border-teal-400"
+      >
+        <option value="last12">Últimos 12 meses</option>
+        @for (year of years(); track year) {
+          <option [value]="year">{{ year }}</option>
+        }
+      </select>
+      @if (overview(); as o) {
+        <span class="text-xs text-type-3">Actualizado {{ o.loadedAt.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) }}</span>
+      }
+      <button
+        type="button"
+        (click)="reload()"
+        [disabled]="isLoading()"
+        class="flex items-center gap-2 rounded-xl border border-border-m bg-white px-3.5 py-2 text-sm font-semibold text-type-2 transition-colors hover:bg-surface-bg disabled:opacity-50"
+      >
+        <svg class="h-4 w-4" [class.animate-spin]="isLoading()" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+        Actualizar
+      </button>
+      <button
+        type="button"
+        (click)="isReportOpen.set(true)"
+        [disabled]="!overview()"
+        class="flex items-center gap-2 rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-4 py-2 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2 disabled:opacity-50"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M15 2v5h5"/><path d="M9 15l3 3 3-3"/><path d="M12 11v7"/></svg>
+        Reporte para socios
+      </button>
+    </div>
   </div>
+
+  @if (error()) {
+    <div class="mb-4 rounded-lg border border-hi bg-hi-light px-4 py-3 text-sm text-hi">{{ error() }}</div>
+  }
+  @if (overview()?.failedClients?.length) {
+    <div class="mb-4 rounded-lg border border-lo bg-lo-light px-4 py-3 text-sm text-lo-dark">
+      No se pudo leer la facturación de {{ overview()!.failedClients.length }} cliente(s); sus montos no están en los totales.
+    </div>
+  }
+
+  @if (!overview() && isLoading()) {
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="h-28 animate-pulse rounded-2xl bg-white shadow-e1"></div>
+      }
+    </div>
+    <p class="mt-4 text-sm text-type-3">Leyendo la facturación de todos los clientes…</p>
+  } @else if (overview()) {
+    <!-- KPIs -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div class="rounded-2xl bg-white p-5 shadow-e1">
+        <p class="text-xs font-bold uppercase tracking-wide text-type-3">Ingresos (sin IVA)</p>
+        <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ formatMXN(revenueTotal()) }}</p>
+        <p class="mt-1 text-xs" [class.text-ok]="(revenueChange() ?? 0) > 0" [class.text-hi]="(revenueChange() ?? 0) < 0" [class.text-type-3]="!revenueChange()">
+          {{ changeLabel(revenueChange()) }}
+        </p>
+      </div>
+      <div class="rounded-2xl bg-white p-5 shadow-e1">
+        <p class="text-xs font-bold uppercase tracking-wide text-type-3">Cobrado (con IVA)</p>
+        <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ formatMXN(collectedTotal()) }}</p>
+        <p class="mt-1 text-xs" [class.text-ok]="(collectedChange() ?? 0) > 0" [class.text-hi]="(collectedChange() ?? 0) < 0" [class.text-type-3]="!collectedChange()">
+          {{ changeLabel(collectedChange()) }}
+        </p>
+      </div>
+      <div class="rounded-2xl bg-white p-5 shadow-e1">
+        <p class="text-xs font-bold uppercase tracking-wide text-type-3">MRR</p>
+        <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ formatMXN(mrr()?.value ?? 0) }}</p>
+        <p class="mt-1 text-xs text-type-3">{{ mrr() ? mrr()!.label + ' · ARR ' + formatMXNShort(mrr()!.value * 12) : 'Sin facturación en el periodo' }}</p>
+      </div>
+      <a routerLink="/payments" [queryParams]="{ status: 'open' }" class="rounded-2xl bg-white p-5 shadow-e1 transition-shadow hover:shadow-e2">
+        <p class="text-xs font-bold uppercase tracking-wide text-type-3">Por cobrar hoy</p>
+        <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ formatMXN(outstanding()) }}</p>
+        <p class="mt-1 text-xs" [class.font-semibold]="overdue() > 0" [class.text-hi]="overdue() > 0" [class.text-type-3]="overdue() === 0">
+          {{ overdue() > 0 ? '⚠ ' + formatMXN(overdue()) + ' vencido' : 'Nada vencido' }}
+        </p>
+      </a>
+      <a routerLink="/clients" class="rounded-2xl bg-white p-5 shadow-e1 transition-shadow hover:shadow-e2">
+        <p class="text-xs font-bold uppercase tracking-wide text-type-3">Clientes activos</p>
+        <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ byStatus().active }}</p>
+        <p class="mt-1 text-xs text-type-3">{{ byStatus().trial }} en prueba · +{{ newInPeriod() }} en el periodo</p>
+      </a>
+    </div>
+
+    <!-- Money over time -->
+    <div class="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <section class="rounded-2xl bg-white p-6 shadow-e1">
+        <h2 class="font-heading text-base font-semibold text-type-1">Ingresos cobrados por mes</h2>
+        <p class="mt-0.5 text-xs text-type-3">{{ periodLabel() }} · prefacturas pagadas, por la fecha del pago (con IVA).</p>
+        <app-trend-chart class="mt-4" [points]="collected()" kind="bar" [format]="formatMXN" [axisFormat]="formatMXNShort" ariaLabel="Ingresos cobrados por mes" />
+      </section>
+      <section class="rounded-2xl bg-white p-6 shadow-e1">
+        <h2 class="font-heading text-base font-semibold text-type-1">Ingresos por mes de servicio</h2>
+        <p class="mt-0.5 text-xs text-type-3">{{ periodLabel() }} · prefacturas emitidas o pagadas, sin IVA, por el mes que cobran.</p>
+        <app-trend-chart class="mt-4" [points]="revenue()" kind="bar" [format]="formatMXN" [axisFormat]="formatMXNShort" ariaLabel="Facturado por mes de servicio" />
+      </section>
+    </div>
+
+    <!-- Growth -->
+    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <section class="rounded-2xl bg-white p-6 shadow-e1 xl:col-span-2">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 class="font-heading text-base font-semibold text-type-1">Crecimiento de clientes</h2>
+            <p class="mt-0.5 text-xs text-type-3">Clientes registrados al cierre de cada mes.</p>
+          </div>
+          <p class="text-xs text-type-3">+{{ newInPeriod() }} en el periodo · +{{ newInPrevious() }} en el anterior · +{{ newThisMonth() }} este mes</p>
+        </div>
+        <app-trend-chart class="mt-4" [points]="growth()" kind="line" [format]="formatCount" [axisFormat]="formatCount" ariaLabel="Clientes registrados por mes" />
+      </section>
+
+      <section class="rounded-2xl bg-white p-6 shadow-e1">
+        <h2 class="font-heading text-base font-semibold text-type-1">Suscripciones</h2>
+        <p class="mt-0.5 text-xs text-type-3">Estado de los {{ overview()!.clients.length }} clientes.</p>
+        <dl class="mt-4 grid grid-cols-2 gap-3">
+          <div class="rounded-xl bg-surface-bg p-3">
+            <dt class="text-xs text-type-3">Activas</dt>
+            <dd class="mt-1 font-heading text-xl font-semibold text-type-1">{{ byStatus().active }}</dd>
+          </div>
+          <div class="rounded-xl bg-surface-bg p-3">
+            <dt class="text-xs text-type-3">En prueba</dt>
+            <dd class="mt-1 font-heading text-xl font-semibold text-type-1">{{ byStatus().trial }}</dd>
+          </div>
+          <div class="rounded-xl bg-surface-bg p-3">
+            <dt class="text-xs text-type-3">Suspendidas</dt>
+            <dd class="mt-1 font-heading text-xl font-semibold text-type-1">{{ byStatus().suspended }}</dd>
+          </div>
+          <div class="rounded-xl bg-surface-bg p-3">
+            <dt class="text-xs text-type-3">Canceladas</dt>
+            <dd class="mt-1 font-heading text-xl font-semibold text-type-1">{{ byStatus().cancelled }}</dd>
+          </div>
+        </dl>
+        <p class="mt-4 text-xs text-type-3">
+          Conversión a pago: <span class="font-semibold text-type-1">{{ formatPercent(conversion()) }}</span>
+          <span class="block">Activas sobre activas + canceladas.</span>
+        </p>
+
+        <h3 class="mt-5 text-xs font-bold uppercase tracking-wide text-type-3">Por plan</h3>
+        <ul class="mt-2 flex flex-col gap-2.5">
+          @for (plan of byPlan(); track plan.label) {
+            <li>
+              <div class="flex justify-between text-sm">
+                <span class="text-type-1">{{ plan.label }}</span>
+                <span class="text-type-2">{{ plan.count }} · {{ formatPercent(plan.share) }}</span>
+              </div>
+              <div class="mt-1 h-2 overflow-hidden rounded-full bg-surface-sunken">
+                <div class="h-full rounded-full bg-teal-500" [style.width.%]="plan.share"></div>
+              </div>
+            </li>
+          } @empty {
+            <li class="text-sm text-type-3">Sin suscripciones activas.</li>
+          }
+        </ul>
+      </section>
+    </div>
+
+    <!-- Health -->
+    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <section class="rounded-2xl bg-white p-6 shadow-e1">
+        <h2 class="font-heading text-base font-semibold text-type-1">Salud de cobranza</h2>
+        <p class="mt-0.5 text-xs text-type-3">Pagos de {{ periodLabel() }}; vencidas a hoy.</p>
+        <dl class="mt-4 flex flex-col divide-y divide-border-s">
+          <div class="flex items-baseline justify-between py-2.5">
+            <dt class="text-sm text-type-2">Pagos a tiempo</dt>
+            <dd class="font-heading text-lg font-semibold text-type-1">{{ formatPercent(onTime()) }}</dd>
+          </div>
+          <div class="flex items-baseline justify-between py-2.5">
+            <dt class="text-sm text-type-2">Días promedio para cobrar</dt>
+            <dd class="font-heading text-lg font-semibold text-type-1">{{ daysToCollect() == null ? '—' : daysToCollect()!.toFixed(1) }}</dd>
+          </div>
+          <div class="flex items-baseline justify-between py-2.5">
+            <dt class="text-sm text-type-2">Ingreso promedio por cliente (ARPA)</dt>
+            <dd class="font-heading text-lg font-semibold text-type-1">{{ revenuePerClient() == null ? '—' : formatMXN(revenuePerClient()) }}</dd>
+          </div>
+          <div class="flex items-baseline justify-between py-2.5">
+            <dt class="text-sm text-type-2">Prefacturas vencidas</dt>
+            <dd class="font-heading text-lg font-semibold" [class.text-hi]="overdueRows().length" [class.text-type-1]="!overdueRows().length">{{ overdueRows().length }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="rounded-2xl bg-white p-6 shadow-e1">
+        <h2 class="font-heading text-base font-semibold text-type-1">Mejores clientes</h2>
+        <p class="mt-0.5 text-xs text-type-3">Lo que pagó cada uno en {{ periodLabel() }}.</p>
+        <ul class="mt-4 flex flex-col gap-3">
+          @for (client of top(); track client.clientId) {
+            <li>
+              <a [routerLink]="['/clients', client.clientId]" [queryParams]="{ tab: 'payments' }" class="group block">
+                <div class="flex justify-between gap-3 text-sm">
+                  <span class="truncate text-type-1 group-hover:text-teal-700">{{ client.clientName }}</span>
+                  <span class="shrink-0 font-semibold text-type-1">{{ formatMXN(client.total) }}</span>
+                </div>
+                <div class="mt-1 h-2 overflow-hidden rounded-full bg-surface-sunken">
+                  <div class="h-full rounded-full bg-teal-500" [style.width.%]="(client.total / topMax()) * 100"></div>
+                </div>
+              </a>
+            </li>
+          } @empty {
+            <li class="text-sm text-type-3">Aún no hay pagos registrados.</li>
+          }
+        </ul>
+      </section>
+
+      <section class="rounded-2xl bg-white p-6 shadow-e1">
+        <h2 class="font-heading text-base font-semibold text-type-1">Pendientes</h2>
+        <p class="mt-0.5 text-xs text-type-3">Lo que necesita tu atención hoy.</p>
+        <ul class="mt-4 flex flex-col gap-2">
+          <li>
+            <a routerLink="/payments" [queryParams]="{ status: 'overdue' }" class="flex items-center justify-between rounded-xl border border-border-s px-4 py-3 text-sm hover:bg-surface-bg">
+              <span class="text-type-1">Prefacturas vencidas</span>
+              <span class="font-semibold" [class.text-hi]="overdueRows().length" [class.text-type-3]="!overdueRows().length">{{ overdueRows().length }} →</span>
+            </a>
+          </li>
+          <li>
+            <a routerLink="/payments" [queryParams]="{ status: 'Draft' }" class="flex items-center justify-between rounded-xl border border-border-s px-4 py-3 text-sm hover:bg-surface-bg">
+              <span class="text-type-1">Borradores sin emitir</span>
+              <span class="font-semibold" [class.text-lo]="drafts().length" [class.text-type-3]="!drafts().length">{{ drafts().length }} →</span>
+            </a>
+          </li>
+          <li>
+            <a routerLink="/payments" [queryParams]="{ view: 'pending' }" class="flex items-center justify-between rounded-xl border border-border-s px-4 py-3 text-sm hover:bg-surface-bg">
+              <span class="text-type-1">Meses sin prefactura</span>
+              <span class="font-semibold" [class.text-lo]="pendingPeriods()" [class.text-type-3]="!pendingPeriods()">{{ pendingPeriods() }} →</span>
+            </a>
+          </li>
+        </ul>
+      </section>
+    </div>
+  }
 </div>
+
+@if (isReportOpen() && overview()) {
+  <app-partner-report-dialog [overview]="overview()!" [years]="years()" [initialPeriod]="period()" (closed)="isReportOpen.set(false)" />
+}

@@ -1,7 +1,7 @@
 <div class="w-full px-6 py-8">
-  <a routerLink="/quotes" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-type-3 hover:text-teal-600">
+  <a appBackLink="/quotes" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-type-3 hover:text-teal-600">
     <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-    Cotizaciones
+    Volver
   </a>
 
   <div *ngIf="isLoading" class="rounded-2xl bg-white p-8 text-center text-sm text-type-3 shadow-e1">Cargando cotización…</div>
@@ -19,21 +19,18 @@
       </div>
 
       <div class="flex flex-wrap gap-2">
+        <a
+          *ngIf="canEdit"
+          [routerLink]="['/quotes', quote.id, 'edit']"
+          class="rounded-xl border border-border-s px-4 py-2.5 text-sm font-semibold text-type-2 transition-colors hover:bg-surface-bg"
+        >Editar</a>
         <button
           *ngIf="canAccept"
           type="button"
           (click)="accept()"
           [disabled]="isAccepting"
           class="rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-et transition-all duration-base hover:-translate-y-0.5 hover:shadow-et2 disabled:opacity-60"
-        >{{ isAccepting ? 'Aceptando…' : 'Aceptar cotización' }}</button>
-
-        <button
-          *ngIf="canApplyToSubscription"
-          type="button"
-          (click)="applyToSubscription()"
-          [disabled]="isApplying"
-          class="rounded-xl border border-teal-500 px-4 py-2.5 text-sm font-semibold text-teal-700 transition-colors hover:bg-teal-50 disabled:opacity-60"
-        >{{ isApplying ? 'Aplicando…' : 'Aplicar a suscripción' }}</button>
+        >{{ isAccepting ? 'Aplicando…' : 'Aceptar y aplicar al cliente' }}</button>
 
         <button
           *ngIf="canActivateOnboarding && !showOnboardingForm"
@@ -44,7 +41,7 @@
       </div>
     </div>
 
-    <div *ngIf="quote.requiresPartnerApproval" class="mb-6 rounded-lg border border-lo bg-lo-light px-4 py-3 text-sm text-type-1">
+    <div *ngIf="showPartnerApprovalNotice" class="mb-6 rounded-lg border border-lo bg-lo-light px-4 py-3 text-sm text-type-1">
       Esta cotización requiere aprobación de los socios.
     </div>
 
@@ -90,7 +87,7 @@
     <!-- Receipt -->
     <div class="overflow-hidden rounded-2xl bg-white shadow-e1">
       <div class="border-b border-dashed border-border-s px-6 py-5 text-center">
-        <p class="font-mono text-xs uppercase tracking-widest text-teal-600">Cotización mensual</p>
+        <p class="font-mono text-xs uppercase tracking-widest text-teal-600">{{ quote.billingCycle === 'Annual' ? 'Cotización anual' : 'Cotización mensual' }}</p>
         <h2 class="mt-1 font-heading text-xl font-semibold text-navy-800">Nori</h2>
         <p class="mt-1 text-sm text-type-2">{{ planLabel(quote.planCode) }}</p>
       </div>
@@ -98,7 +95,7 @@
       <div class="px-6 py-4">
         <div *ngFor="let line of quote.lineItems" class="flex items-center justify-between gap-3 py-1.5 text-xs">
           <span class="text-type-2">{{ line.description }}</span>
-          <span class="shrink-0 font-mono text-type-1">{{ formatMXN(line.amount) }}</span>
+          <span class="shrink-0 font-mono text-type-1">{{ line.lineType === 'Note' ? '—' : formatMXN(line.amount) }}</span>
         </div>
 
         <div class="my-3 border-t border-dashed border-border-s"></div>
@@ -108,7 +105,7 @@
       </div>
 
       <div class="flex items-baseline justify-between border-t border-border-s bg-surface-bg px-6 py-4">
-        <span class="font-heading text-base font-semibold text-navy-800">Total del mes</span>
+        <span class="font-heading text-base font-semibold text-navy-800">{{ quote.billingCycle === 'Annual' ? 'Total del año' : 'Total del mes' }}</span>
         <span class="font-mono text-2xl font-bold text-navy-800">{{ formatMXN(quote.total) }}</span>
       </div>
     </div>

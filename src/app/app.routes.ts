@@ -2,7 +2,6 @@ import { Routes } from '@angular/router';
 import { AuthGuard, NoAuthGuard } from '@nori/core';
 import { Login } from './auth/login/login';
 import { Layout } from './layout/layout';
-import { Dashboard } from './dashboard/dashboard';
 
 export const routes: Routes = [
   { path: 'login', component: Login, canActivate: [NoAuthGuard] },
@@ -11,7 +10,10 @@ export const routes: Routes = [
     component: Layout,
     canActivate: [AuthGuard],
     children: [
-      { path: 'dashboard', component: Dashboard },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./dashboard/dashboard').then((m) => m.Dashboard),
+      },
       {
         path: 'clients',
         loadComponent: () => import('./clients/clients-list/clients-list').then((m) => m.ClientsList),
@@ -25,6 +27,10 @@ export const routes: Routes = [
         loadComponent: () => import('./clients/client-detail/client-detail').then((m) => m.ClientDetail),
       },
       {
+        path: 'payments',
+        loadComponent: () => import('./payments/payments-page/payments-page').then((m) => m.PaymentsPage),
+      },
+      {
         path: 'catalog',
         loadComponent: () => import('./catalog/catalog-page/catalog-page').then((m) => m.CatalogPage),
       },
@@ -34,6 +40,10 @@ export const routes: Routes = [
       },
       {
         path: 'quotes/new',
+        loadComponent: () => import('./quotes/quote-editor/quote-editor').then((m) => m.QuoteEditor),
+      },
+      {
+        path: 'quotes/:id/edit',
         loadComponent: () => import('./quotes/quote-editor/quote-editor').then((m) => m.QuoteEditor),
       },
       {

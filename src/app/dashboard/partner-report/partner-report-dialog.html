@@ -1,0 +1,84 @@
+<app-modal size="lg" title="Reporte para socios" subtitle="PDF con resumen ejecutivo, estado de resultados, detalle mensual, clientes y cobranza." [busy]="isGenerating()" (closed)="closed.emit()">
+  <div class="flex flex-col gap-6">
+    <div class="flex flex-wrap items-end gap-4">
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Periodo</span>
+        <select [ngModel]="period()" (ngModelChange)="selectPeriod($event)" class="rounded-xl border border-border-m bg-white px-3 py-2.5 text-sm">
+          <option value="last12">Últimos 12 meses</option>
+          @for (year of years(); track year) {
+            <option [ngValue]="year">{{ year }}</option>
+          }
+        </select>
+      </label>
+      <div class="rounded-xl bg-surface-bg px-4 py-2.5 text-sm">
+        <span class="text-type-3">Ingresos netos de {{ periodLabel(period()) }}:</span>
+        <b class="ml-1 font-mono text-type-1">{{ formatMXN(preview().netRevenue) }}</b>
+        <span class="ml-1 text-xs text-type-3">sin IVA</span>
+      </div>
+    </div>
+
+    <p class="rounded-xl bg-info-light px-4 py-3 text-xs text-type-1">
+      El sistema conoce tus ingresos y tu cobranza, no tus gastos. Captura los totales del periodo para que el estado de resultados llegue
+      hasta la utilidad. Todo es opcional; lo que escribas se guarda en este navegador para la próxima vez.
+    </p>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      @for (group of [
+        { title: 'Costo del servicio', help: 'Lo que cuesta dar el servicio a los laboratorios.', lines: inputs.costOfService },
+        { title: 'Gastos de operación', help: 'Lo que cuesta operar la empresa.', lines: inputs.operatingExpenses }
+      ]; track group.title) {
+        <section>
+          <h3 class="text-sm font-semibold text-type-1">{{ group.title }}</h3>
+          <p class="text-xs text-type-3">{{ group.help }}</p>
+          <div class="mt-3 flex flex-col gap-2">
+            @for (line of group.lines; track $index) {
+              <div class="flex items-center gap-2">
+                <input [(ngModel)]="line.label" [name]="group.title + 'label' + $index" placeholder="Concepto" class="min-w-0 flex-1 rounded-lg border border-border-m px-3 py-2 text-sm" />
+                <input type="number" min="0" step="0.01" [(ngModel)]="line.amount" [name]="group.title + 'amount' + $index" placeholder="$0.00" class="w-32 rounded-lg border border-border-m px-3 py-2 text-right font-mono text-sm" />
+                <button type="button" (click)="removeLine(group.lines, $index)" class="rounded-lg p-2 text-type-3 hover:bg-surface-bg hover:text-hi" aria-label="Quitar concepto">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            }
+          </div>
+          <div class="mt-2 flex items-center justify-between">
+            <button type="button" (click)="addLine(group.lines)" class="text-xs font-semibold text-teal-700 hover:underline">+ Agregar concepto</button>
+            <span class="text-xs text-type-3">Total <b class="font-mono text-type-1">{{ formatMXN(total(group.lines)) }}</b></span>
+          </div>
+        </section>
+      }
+    </div>
+
+    <label class="flex max-w-xs flex-col gap-1.5">
+      <span class="text-xs font-bold uppercase tracking-wide text-type-2">Caja disponible al cierre</span>
+      <input type="number" min="0" step="0.01" [(ngModel)]="inputs.cashOnHand" name="cash" placeholder="Opcional, para calcular el runway" class="rounded-xl border border-border-m px-3 py-2.5 font-mono text-sm" />
+    </label>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Logros del periodo</span>
+        <textarea [(ngModel)]="inputs.highlights" name="highlights" rows="5" placeholder="Un punto por línea: clientes ganados, lanzamientos, hitos…" class="rounded-xl border border-border-m px-3 py-2.5 text-sm"></textarea>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Retos y riesgos</span>
+        <textarea [(ngModel)]="inputs.challenges" name="challenges" rows="5" placeholder="Cobranza atrasada, clientes en riesgo, contrataciones…" class="rounded-xl border border-border-m px-3 py-2.5 text-sm"></textarea>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-type-2">Próximos pasos</span>
+        <textarea [(ngModel)]="inputs.nextSteps" name="nextSteps" rows="5" placeholder="Metas del siguiente periodo y qué necesitas de los socios…" class="rounded-xl border border-border-m px-3 py-2.5 text-sm"></textarea>
+      </label>
+    </div>
+  </div>
+
+  <ng-container modal-footer>
+    <button type="button" (click)="closed.emit()" [disabled]="isGenerating()" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-type-2 hover:bg-white">Cancelar</button>
+    <button
+      type="button"
+      (click)="generate()"
+      [disabled]="isGenerating()"
+      class="flex items-center gap-2 rounded-xl bg-gradient-to-br from-navy-900 to-teal-700 px-5 py-2.5 text-sm font-bold text-white shadow-et disabled:opacity-50"
+    >
+      {{ isGenerating() ? 'Generando…' : 'Descargar PDF' }}
+    </button>
+  </ng-container>
+</app-modal>

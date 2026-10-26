@@ -1,0 +1,124 @@
+<app-modal
+  size="lg"
+  [title]="'Editar prefactura ' + prefactura().invoiceNumber"
+  [subtitle]="'Periodo de servicio: ' + longDate(prefactura().servicePeriodStart) + ' – ' + longDate(prefactura().servicePeriodEnd)"
+  [busy]="isSaving()"
+  (closed)="close()"
+>
+  <div class="flex flex-col gap-3">
+    @if (prefactura().status === 'Issued') {
+      <p class="rounded-xl bg-info-light px-4 py-3 text-xs text-type-1">
+        Esta prefactura ya fue emitida. Si ya la enviaste al cliente, mándale el PDF nuevo después de guardar.
+      </p>
+    }
+    <div class="hidden grid-cols-[120px_1fr_90px_120px_110px_76px] gap-3 px-1 text-[11px] font-bold uppercase tracking-wide text-type-3 md:grid">
+      <span>Tipo</span><span>Concepto</span><span class="text-right">Cant.</span><span class="text-right">P. unitario</span><span class="text-right">Importe</span><span></span>
+    </div>
+
+    @for (line of lines(); track $index; let i = $index; let first = $first; let last = $last) {
+      <div class="grid grid-cols-2 gap-3 rounded-xl border border-border-s p-3 md:grid-cols-[120px_1fr_90px_120px_110px_76px] md:items-start">
+        <select
+          [ngModel]="line.lineType"
+          (ngModelChange)="patch(i, { lineType: $event })"
+          [name]="'type' + i"
+          class="col-span-2 rounded-lg border border-border-m bg-white px-2 py-2 text-xs md:col-span-1"
+          aria-label="Tipo de concepto"
+        >
+          @for (type of lineTypes; track type.value) {
+            <option [value]="type.value">{{ type.label }}</option>
+          }
+        </select>
+        <div class="col-span-2 flex flex-col gap-1.5 md:col-span-1">
+          <input
+            [ngModel]="line.description"
+            (ngModelChange)="patch(i, { description: $event })"
+            [name]="'desc' + i"
+            placeholder="Concepto"
+            maxlength="500"
+            class="rounded-lg border border-border-m px-2.5 py-2 text-sm font-semibold text-type-1"
+            [class.border-hi]="!line.description.trim()"
+            aria-label="Concepto"
+          />
+          <textarea
+            [ngModel]="line.detail"
+            (ngModelChange)="patch(i, { detail: $event })"
+            [name]="'detail' + i"
+            rows="2"
+            maxlength="1000"
+            placeholder="Detalle (incluye, periodo, volumen…)"
+            class="resize-y rounded-lg border border-border-m px-2.5 py-2 text-xs text-type-2"
+            aria-label="Detalle"
+          ></textarea>
+        </div>
+        <input
+          type="number"
+          step="any"
+          min="0"
+          [ngModel]="line.quantity"
+          (ngModelChange)="patch(i, { quantity: $event })"
+          [name]="'qty' + i"
+          [disabled]="line.lineType === 'Note'"
+          class="rounded-lg border border-border-m px-2.5 py-2 text-right font-mono text-sm disabled:bg-surface-bg disabled:text-type-4"
+          aria-label="Cantidad"
+        />
+        <input
+          type="number"
+          step="any"
+          [ngModel]="line.unitPrice"
+          (ngModelChange)="patch(i, { unitPrice: $event })"
+          [name]="'price' + i"
+          [disabled]="line.lineType === 'Note'"
+          class="rounded-lg border px-2.5 py-2 text-right font-mono text-sm disabled:bg-surface-bg disabled:text-type-4"
+          [class.border-hi]="line.unitPrice < 0 && line.lineType !== 'Discount' && line.lineType !== 'MigrationAdjustment'"
+          [class.border-border-m]="!(line.unitPrice < 0 && line.lineType !== 'Discount' && line.lineType !== 'MigrationAdjustment')"
+          aria-label="Precio unitario"
+        />
+        <span class="self-center text-right font-mono text-sm font-semibold text-type-1" [class.text-hi]="amount(line) < 0">{{ formatMXN(amount(line)) }}</span>
+        <div class="flex items-center justify-end gap-0.5 self-center">
+          <button type="button" (click)="move(i, -1)" [disabled]="first" class="rounded-md p-1.5 text-type-3 hover:bg-surface-bg disabled:opacity-30" aria-label="Subir">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <button type="button" (click)="move(i, 1)" [disabled]="last" class="rounded-md p-1.5 text-type-3 hover:bg-surface-bg disabled:opacity-30" aria-label="Bajar">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <button type="button" (click)="remove(i)" class="rounded-md p-1.5 text-type-3 hover:bg-hi-light hover:text-hi" aria-label="Eliminar concepto">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+      </div>
+    }
+
+    <button type="button" (click)="add()" [disabled]="lines().length >= 50" class="flex disabled:opacity-50 items-center justify-center gap-2 rounded-xl border border-dashed border-border-m py-3 text-sm font-semibold text-teal-700 hover:border-teal-400 hover:bg-teal-50">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Agregar concepto
+    </button>
+
+    <div class="mt-2 grid grid-cols-1 gap-5 md:grid-cols-[1fr_280px]">
+      <div class="flex flex-col gap-4">
+        <label class="flex max-w-xs flex-col gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-type-2">Vigencia (fecha límite de pago)</span>
+          <input type="date" name="dueDate" [(ngModel)]="dueDate" [min]="prefactura().servicePeriodStart" class="rounded-xl border border-border-m px-3 py-2.5 text-sm" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-type-2">Observaciones</span>
+          <textarea name="notes" [(ngModel)]="notes" rows="3" maxlength="2000" placeholder="Se imprimen en la prefactura" class="rounded-xl border border-border-m px-3 py-2.5 text-sm"></textarea>
+        </label>
+      </div>
+      <dl class="flex flex-col gap-2 self-start rounded-xl bg-surface-bg p-4 text-sm">
+        <div class="flex justify-between"><dt class="text-type-3">Subtotal</dt><dd class="font-mono font-semibold text-type-1">{{ formatMXN(subtotal()) }}</dd></div>
+        <div class="flex justify-between"><dt class="text-type-3">IVA 16%</dt><dd class="font-mono font-semibold text-type-1">{{ formatMXN(tax()) }}</dd></div>
+        <div class="mt-1 flex justify-between rounded-lg bg-teal-600 px-3 py-2 text-white"><dt class="font-bold">Total MXN</dt><dd class="font-mono font-bold">{{ formatMXN(total()) }}</dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <ng-container modal-footer>
+    @if (error()) {
+      <span class="mr-auto text-xs text-hi">{{ error() }}</span>
+    }
+    <button type="button" (click)="close()" [disabled]="isSaving()" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-type-2 hover:bg-white">Cancelar</button>
+    <button type="button" (click)="save()" [disabled]="!isValid() || isSaving()" class="rounded-xl bg-navy-900 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">
+      {{ isSaving() ? 'Guardando…' : 'Guardar cambios' }}
+    </button>
+  </ng-container>
+</app-modal>

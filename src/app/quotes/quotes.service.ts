@@ -26,6 +26,11 @@ export class QuotesService {
     return this.http.post<Quote>(this.base, request);
   }
 
+  /** Draft and sent quotes only; the client does not change. */
+  update(quoteId: string, request: CreateQuoteRequest): Observable<Quote> {
+    return this.http.put<Quote>(`${this.base}/${quoteId}`, request);
+  }
+
   list(filters: QuoteFilters): Observable<Quote[]> {
     let params = new HttpParams();
     if (filters.status) params = params.set('status', filters.status);

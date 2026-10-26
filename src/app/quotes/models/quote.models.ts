@@ -1,5 +1,8 @@
 import { AddOnCode, PlanCode, QuoteStatus } from '../../shared/models/shared.models';
 
+/** Only Enterprise may pay yearly; every other plan bills monthly. */
+export type BillingCycle = 'Monthly' | 'Annual';
+
 export interface EnterpriseTerms {
   negotiatedBasePrice: number;
   negotiatedCaseUnitPrice: number;
@@ -10,6 +13,11 @@ export interface EnterpriseTerms {
   billingIncluded?: boolean;
   inventoryIncluded?: boolean;
   analyticsIncluded?: boolean;
+  billingCycle?: BillingCycle;
+  /** Fraction off the subtotal, e.g. 0.1 for 10%. */
+  discountPercent?: number;
+  /** Yearly increase from the second contract year, e.g. 0.05 for 5%. */
+  annualIncreasePercent?: number;
 }
 
 export interface QuoteInput {
@@ -47,6 +55,7 @@ export interface QuotePricing {
   taxRate: number;
   requiresPartnerApproval: boolean;
   lineItems: QuoteLine[];
+  billingCycle: BillingCycle;
 }
 
 export interface Quote {
@@ -70,6 +79,8 @@ export interface Quote {
   createdAt: string;
   selectedAddOnCodes: AddOnCode[];
   lineItems: QuoteLine[];
+  billingCycle: BillingCycle;
+  enterpriseTerms?: EnterpriseTerms;
 }
 
 export interface QuoteFilters {
