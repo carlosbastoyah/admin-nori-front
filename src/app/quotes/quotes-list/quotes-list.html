@@ -2,7 +2,7 @@
   <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div>
       <h1 class="font-heading text-2xl font-semibold text-type-1">Cotizaciones</h1>
-      <p class="mt-1 text-sm text-type-2">{{ quotes.length }} cotización{{ quotes.length === 1 ? '' : 'es' }}</p>
+      <p class="mt-1 text-sm text-type-2">{{ quotes().length }} cotización{{ quotes().length === 1 ? '' : 'es' }} · {{ visible().length }} con estos filtros</p>
     </div>
     <button
       type="button"
@@ -14,24 +14,58 @@
     </button>
   </div>
 
-  <div class="mb-4 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-e1 sm:grid-cols-2">
-    <div class="flex flex-col gap-1">
-      <label class="text-xs font-bold uppercase tracking-wide text-type-3">Estado</label>
-      <select [(ngModel)]="status" (change)="applyFilters()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400">
-        <option value="all">Todos</option>
-        <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
-      </select>
+  <!-- Summary -->
+  <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <button type="button" (click)="status.set('open')" class="rounded-2xl bg-white p-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Abiertas</p>
+      <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ openQuotes().length }}</p>
+      <p class="mt-1 text-xs text-type-3">{{ formatMXN(openValue()) }} en negociación (sin IVA)</p>
+    </button>
+    <button type="button" (click)="status.set('Accepted')" class="rounded-2xl bg-white p-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Aceptadas</p>
+      <p class="mt-2 font-heading text-2xl font-semibold text-ok">{{ accepted().length }}</p>
+      <p class="mt-1 text-xs text-type-3">{{ formatMXN(acceptedValue()) }} cerrados (sin IVA)</p>
+    </button>
+    <div class="rounded-2xl bg-white p-5 shadow-e1">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Tasa de cierre</p>
+      <p class="mt-2 font-heading text-2xl font-semibold text-type-1">{{ winRate() == null ? '—' : winRate() + '%' }}</p>
+      <p class="mt-1 text-xs text-type-3">Aceptadas sobre las ya resueltas</p>
     </div>
-    <div class="flex flex-col gap-1">
-      <label class="text-xs font-bold uppercase tracking-wide text-type-3">Plan</label>
-      <select [(ngModel)]="planCode" (change)="applyFilters()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400">
-        <option value="all">Todos</option>
-        <option *ngFor="let p of planOptions" [value]="p.value">{{ p.label }}</option>
-      </select>
-    </div>
+    <button type="button" (click)="status.set('open')" class="rounded-2xl bg-white p-5 text-left shadow-e1 transition-shadow hover:shadow-e2">
+      <p class="text-xs font-bold uppercase tracking-wide text-type-3">Por vencer</p>
+      <p class="mt-2 font-heading text-2xl font-semibold" [class.text-lo]="expiringSoon() > 0" [class.text-type-1]="expiringSoon() === 0">{{ expiringSoon() }}</p>
+      <p class="mt-1 text-xs text-type-3">Abiertas que vencen en 7 días o menos</p>
+    </button>
   </div>
 
-  <div *ngIf="errorMessage" class="mb-4 rounded-lg border border-hi bg-hi-light px-4 py-3 text-sm text-hi">{{ errorMessage }}</div>
+  <!-- Filters -->
+  <div class="mb-4 flex flex-wrap items-end gap-3 rounded-2xl bg-white p-4 shadow-e1">
+    <label class="flex min-w-[220px] flex-1 flex-col gap-1">
+      <span class="text-xs font-bold uppercase tracking-wide text-type-3">Buscar</span>
+      <input type="text" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Cliente, prospecto o folio" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-xs font-bold uppercase tracking-wide text-type-3">Estado</span>
+      <select [ngModel]="status()" (ngModelChange)="status.set($event)" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400">
+        @for (s of statusOptions; track s.value) {
+          <option [value]="s.value">{{ s.label }}</option>
+        }
+      </select>
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-xs font-bold uppercase tracking-wide text-type-3">Plan</span>
+      <select [ngModel]="planCode()" (ngModelChange)="planCode.set($event)" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400">
+        <option value="all">Todos</option>
+        @for (p of planOptions; track p.value) {
+          <option [value]="p.value">{{ p.label }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="mb-4 rounded-lg border border-hi bg-hi-light px-4 py-3 text-sm text-hi">{{ errorMessage() }}</div>
+  }
 
   <div class="overflow-hidden rounded-2xl bg-white shadow-e1">
     <div class="overflow-x-auto">
@@ -41,28 +75,65 @@
             <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Cliente / prospecto</th>
             <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Plan</th>
             <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Estado</th>
-            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Total</th>
+            <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-type-3">Total</th>
             <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Creada</th>
-            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3"></th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wide text-type-3">Vigencia</th>
+            <th class="px-5 py-3"></th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let quote of quotes" (click)="openQuote(quote)" class="cursor-pointer border-b border-border-s last:border-0 hover:bg-surface-bg">
-            <td class="px-5 py-3.5 font-semibold text-type-1">{{ quote.clientName || quote.prospectName || '—' }}</td>
-            <td class="px-5 py-3.5 text-type-2">{{ planLabel(quote.planCode) }}</td>
-            <td class="px-5 py-3.5"><span [class]="badgeClass(quoteStatusTone(quote.status))">{{ quoteStatusLabel(quote.status) }}</span></td>
-            <td class="px-5 py-3.5 font-mono text-type-1">{{ formatMXN(quote.total) }}</td>
-            <td class="px-5 py-3.5 text-type-2">{{ quote.createdAt | date: 'dd/MM/yyyy' }}</td>
-            <td class="px-5 py-3.5 text-right text-type-3">
-              <svg class="ml-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-            </td>
-          </tr>
-          <tr *ngIf="!isLoading && quotes.length === 0">
-            <td colspan="6" class="px-5 py-10 text-center text-sm text-type-3">No hay cotizaciones con estos filtros.</td>
-          </tr>
-          <tr *ngIf="isLoading">
-            <td colspan="6" class="px-5 py-10 text-center text-sm text-type-3">Cargando cotizaciones…</td>
-          </tr>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="7" class="px-5 py-10 text-center text-sm text-type-3">Cargando cotizaciones…</td>
+            </tr>
+          } @else {
+            @for (quote of visible(); track quote.id) {
+              <tr (click)="openQuote(quote)" class="cursor-pointer border-b border-border-s last:border-0 hover:bg-surface-bg" [class.opacity-60]="busyId() === quote.id">
+                <td class="px-5 py-3.5">
+                  <p class="font-semibold text-type-1">{{ quote.clientName || quote.prospectName || '—' }}</p>
+                  <p class="font-mono text-[11px] text-type-3">{{ quoteFolio(quote) }}{{ quote.clientId ? '' : ' · prospecto' }}</p>
+                </td>
+                <td class="px-5 py-3.5 text-type-2">
+                  {{ planLabel(quote.planCode) }}
+                  <span class="block text-xs text-type-3">{{ quote.billingCycle === 'Annual' ? 'Anual' : 'Mensual' }}</span>
+                </td>
+                <td class="px-5 py-3.5"><span [class]="badgeClass(quoteStatusTone(quote.status))">{{ quoteStatusLabel(quote.status) }}</span></td>
+                <td class="whitespace-nowrap px-5 py-3.5 text-right font-mono text-type-1">{{ formatMXN(quote.total) }}</td>
+                <td class="whitespace-nowrap px-5 py-3.5 text-type-2">{{ quote.createdAt | date: 'dd/MM/yyyy' }}</td>
+                <td class="whitespace-nowrap px-5 py-3.5 text-xs">
+                  @if (validity(quote); as v) {
+                    <span [class.text-hi]="v.tone === 'danger'" [class.font-semibold]="v.tone !== 'muted'" [class.text-lo]="v.tone === 'warn'" [class.text-type-3]="v.tone === 'muted'">{{ v.text }}</span>
+                  } @else {
+                    <span class="text-type-3">{{ quote.validUntil ? (quote.validUntil | date: 'dd/MM/yyyy') : '—' }}</span>
+                  }
+                </td>
+                <td class="whitespace-nowrap px-5 py-3.5">
+                  <div class="flex justify-end gap-0.5">
+                    <button type="button" (click)="viewPdf(quote, $event)" [disabled]="busyId() === quote.id" title="Ver PDF" aria-label="Ver PDF" class="rounded-lg p-2 text-type-3 hover:bg-white hover:text-type-1 disabled:opacity-40">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    <button type="button" (click)="downloadPdf(quote, $event)" [disabled]="busyId() === quote.id" title="Descargar PDF" aria-label="Descargar PDF" class="rounded-lg p-2 text-type-3 hover:bg-white hover:text-type-1 disabled:opacity-40">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                    </button>
+                    @if (canEdit(quote)) {
+                      <button type="button" (click)="edit(quote, $event)" title="Editar" aria-label="Editar" class="rounded-lg p-2 text-type-3 hover:bg-white hover:text-teal-700">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                      </button>
+                    }
+                    @if (canDelete(quote)) {
+                      <button type="button" (click)="remove(quote, $event)" [disabled]="busyId() === quote.id" title="Eliminar" aria-label="Eliminar" class="rounded-lg p-2 text-type-3 hover:bg-hi-light hover:text-hi disabled:opacity-40">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="px-5 py-10 text-center text-sm text-type-3">No hay cotizaciones con estos filtros.</td>
+              </tr>
+            }
+          }
         </tbody>
       </table>
     </div>

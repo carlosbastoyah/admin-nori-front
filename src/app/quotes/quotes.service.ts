@@ -43,6 +43,11 @@ export class QuotesService {
     return this.http.get<Quote>(`${this.base}/${quoteId}`);
   }
 
+  /** Any quote but an accepted one, which is the contract behind a subscription. */
+  delete(quoteId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${quoteId}`);
+  }
+
   accept(quoteId: string): Observable<Quote> {
     return this.http.post<Quote>(`${this.base}/${quoteId}/accept`, {});
   }

@@ -10,6 +10,7 @@ import { ActivateOnboardingRequest, Quote } from '../models/quote.models';
 import { badgeClass, planLabel, quoteStatusLabel, quoteStatusTone } from '../../shared/utils/labels.util';
 import { formatMXN } from '../../shared/utils/format.util';
 import { BackLink } from '../../shared/directives/back-link.directive';
+import { downloadQuotePdf, openQuotePdf, quoteFolio } from '../quote-pdf/quote-pdf';
 
 @Component({
   selector: 'app-quote-detail',
@@ -28,6 +29,8 @@ export class QuoteDetail implements OnDestroy {
   isLoading = true;
   notFound = false;
   isAccepting = false;
+  isDeleting = false;
+  isMakingPdf = false;
 
   showOnboardingForm = false;
   isActivatingOnboarding = false;
@@ -45,6 +48,7 @@ export class QuoteDetail implements OnDestroy {
   readonly quoteStatusLabel = quoteStatusLabel;
   readonly quoteStatusTone = quoteStatusTone;
   readonly formatMXN = formatMXN;
+  readonly quoteFolio = quoteFolio;
 
   constructor() {
     this.route.paramMap
@@ -93,6 +97,56 @@ export class QuoteDetail implements OnDestroy {
   /** A prospect's quote becomes a client and its subscription in one step; the API refuses accepted quotes. */
   get canActivateOnboarding(): boolean {
     return this.isOpen && !this.quote?.clientId;
+  }
+
+  /** Accepted quotes are the contract behind a subscription; the API refuses to delete them. */
+  get canDelete(): boolean {
+    return !!this.quote && this.quote.status !== 'Accepted';
+  }
+
+  async viewPdf(): Promise<void> {
+    if (!this.quote) return;
+    this.isMakingPdf = true;
+    try {
+      await openQuotePdf(this.quote);
+    } catch {
+      this.notificationService.error('No se pudo abrir el PDF.');
+    } finally {
+      this.isMakingPdf = false;
+    }
+  }
+
+  async downloadPdf(): Promise<void> {
+    if (!this.quote) return;
+    this.isMakingPdf = true;
+    try {
+      await downloadQuotePdf(this.quote);
+    } catch {
+      this.notificationService.error('No se pudo generar el PDF.');
+    } finally {
+      this.isMakingPdf = false;
+    }
+  }
+
+  remove(): void {
+    if (!this.quote) return;
+    const quote = this.quote;
+    if (!confirm(`¿Eliminar la cotización ${quoteFolio(quote)}? Esta acción no se puede deshacer.`)) return;
+    this.isDeleting = true;
+    this.quotesService
+      .delete(quote.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.isDeleting = false;
+          this.notificationService.success(`Cotización ${quoteFolio(quote)} eliminada.`, 'Listo');
+          this.router.navigate(['/quotes']);
+        },
+        error: (error) => {
+          this.isDeleting = false;
+          this.notificationService.apiError(error, 'No se pudo eliminar la cotización.');
+        },
+      });
   }
 
   accept(): void {

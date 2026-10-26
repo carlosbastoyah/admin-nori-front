@@ -14,11 +14,36 @@
           <h1 class="font-heading text-2xl font-semibold text-type-1">{{ quote.clientName || quote.prospectName || 'Cotización' }}</h1>
           <span [class]="badgeClass(quoteStatusTone(quote.status))">{{ quoteStatusLabel(quote.status) }}</span>
         </div>
-        <p class="mt-1 text-sm text-type-2">{{ planLabel(quote.planCode) }} · creada el {{ quote.createdAt | date: 'dd/MM/yyyy' }}</p>
+        <p class="mt-1 text-sm text-type-2"><span class="font-mono text-xs text-type-3">{{ quoteFolio(quote) }}</span> · {{ planLabel(quote.planCode) }} · creada el {{ quote.createdAt | date: 'dd/MM/yyyy' }}</p>
         <p *ngIf="quote.validUntil" class="mt-0.5 text-xs text-type-3">Válida hasta {{ quote.validUntil | date: 'dd/MM/yyyy' }}</p>
       </div>
 
       <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          (click)="viewPdf()"
+          [disabled]="isMakingPdf"
+          class="flex items-center gap-2 rounded-xl border border-border-s px-4 py-2.5 text-sm font-semibold text-type-2 transition-colors hover:bg-surface-bg disabled:opacity-60"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Ver PDF
+        </button>
+        <button
+          type="button"
+          (click)="downloadPdf()"
+          [disabled]="isMakingPdf"
+          class="flex items-center gap-2 rounded-xl border border-border-s px-4 py-2.5 text-sm font-semibold text-type-2 transition-colors hover:bg-surface-bg disabled:opacity-60"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          {{ isMakingPdf ? 'Generando…' : 'Descargar PDF' }}
+        </button>
+        <button
+          *ngIf="canDelete"
+          type="button"
+          (click)="remove()"
+          [disabled]="isDeleting"
+          class="rounded-xl border border-hi/40 px-4 py-2.5 text-sm font-semibold text-hi transition-colors hover:bg-hi-light disabled:opacity-60"
+        >{{ isDeleting ? 'Eliminando…' : 'Eliminar' }}</button>
         <a
           *ngIf="canEdit"
           [routerLink]="['/quotes', quote.id, 'edit']"
