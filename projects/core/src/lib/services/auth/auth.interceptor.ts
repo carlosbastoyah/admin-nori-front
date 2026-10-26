@@ -1,118 +1,81 @@
 import { Injectable } from '@angular/core';
 import {
+    HttpContextToken,
     HttpRequest,
     HttpHandler,
     HttpEvent,
     HttpInterceptor,
     HttpErrorResponse
 } from '@angular/common/http';
-import { Observable, throwError, Subject } from 'rxjs';
-import { catchError, switchMap, take } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { isApiError } from '../../models/api-error';
 
+/** Marks a request already retried after a refresh, so a second 401 is final instead of looping. */
+const RETRIED_AFTER_REFRESH = new HttpContextToken<boolean>(() => false);
+
+/**
+ * Adds the Bearer token and, on a 401, refreshes it once and retries the request. Concurrent 401s share one refresh
+ * (AuthService keeps it in flight); a request that failed with a token another refresh already replaced is retried
+ * with the new one without refreshing again. Whether a failed refresh ends the session is AuthService's call.
+ */
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-    private isRefreshing = false;
-    private tokenSubject = new Subject<string | null>();
-
     constructor(private readonly authService: AuthService) { }
 
     intercept(
         request: HttpRequest<unknown>,
         next: HttpHandler
     ): Observable<HttpEvent<unknown>> {
-        const token = this.authService.getToken();
-        if (token && !this.isAuthBypassEndpoint(request)) {
-            request = this.addToken(request, token);
+        // Login, refresh and logout carry their own credentials and must never trigger a refresh themselves:
+        // a 401 from logout used to start a refresh, whose failure logged out again, and so on.
+        if (this.isAuthEndpoint(request)) {
+            return next.handle(request);
         }
 
-        return next.handle(request).pipe(
+        const sentToken = this.authService.getToken();
+        const outgoing = sentToken ? this.addToken(request, sentToken) : request;
+
+        return next.handle(outgoing).pipe(
             catchError((error: unknown) => {
-                const status = error instanceof HttpErrorResponse
-                    ? error.status
-                    : (error as { status?: number })?.status;
-                if (status === 401) {
-                    if (this.isLoginEndpoint(request)) {
-                        return throwError(() => error);
-                    }
-                    return this.handle401Error(request, next, error);
+                if (this.statusOf(error) !== 401 || request.context.get(RETRIED_AFTER_REFRESH) || !sentToken) {
+                    return throwError(() => error);
                 }
-                return throwError(() => error);
+                return this.retryWithFreshToken(request, next, sentToken, error);
             })
         );
     }
 
-    private addToken(
-        request: HttpRequest<unknown>,
-        token: string
-    ): HttpRequest<unknown> {
-        return request.clone({
-            setHeaders: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-    }
-
-    private isRefreshEndpoint(request: HttpRequest<unknown>): boolean {
-        return request.url.includes('auth/refresh');
-    }
-
-    private isLoginEndpoint(request: HttpRequest<unknown>): boolean {
-        return request.url.includes('auth/login');
-    }
-
-    private isAuthBypassEndpoint(request: HttpRequest<unknown>): boolean {
-        return this.isLoginEndpoint(request);
-    }
-
-    private handle401Error(
+    private retryWithFreshToken(
         request: HttpRequest<unknown>,
         next: HttpHandler,
+        sentToken: string,
         originalError: unknown
     ): Observable<HttpEvent<unknown>> {
-        if (this.isRefreshEndpoint(request)) {
-            this.authService.logout().subscribe();
-            return throwError(() => originalError);
+        const retry = (token: string) =>
+            next.handle(this.addToken(request.clone({ context: request.context.set(RETRIED_AFTER_REFRESH, true) }), token));
+
+        // Another request (or another tab) refreshed while this one was in flight: use that token.
+        const current = this.authService.getToken();
+        if (current && current !== sentToken) {
+            return retry(current);
         }
 
-        if (isApiError(originalError) && originalError.code === 'INVALID_OR_EXPIRED_TOKEN') {
-            this.authService.logout().subscribe();
-            return throwError(() => originalError);
-        }
-
-        if (!this.isRefreshing) {
-            this.isRefreshing = true;
-            this.tokenSubject = new Subject<string | null>();
-
-            this.authService.refreshToken().subscribe({
-                next: (response) => {
-                    const newToken = response?.accessToken;
-                    if (newToken) {
-                        this.tokenSubject.next(newToken);
-                    } else {
-                        this.tokenSubject.next(null);
-                    }
-                    this.tokenSubject.complete();
-                    this.isRefreshing = false;
-                },
-                error: () => {
-                    this.tokenSubject.next(null);
-                    this.tokenSubject.complete();
-                    this.isRefreshing = false;
-                    this.authService.logout().subscribe();
-                }
-            });
-        }
-
-        return this.tokenSubject.pipe(
-            take(1),
-            switchMap((newToken) => {
-                if (!newToken) {
-                    return throwError(() => originalError);
-                }
-                return next.handle(this.addToken(request, newToken));
-            })
+        return this.authService.refreshToken().pipe(
+            catchError(() => throwError(() => originalError)),
+            switchMap((response) => retry(response.accessToken))
         );
+    }
+
+    private addToken(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
+        return request.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+    }
+
+    private statusOf(error: unknown): number | undefined {
+        return error instanceof HttpErrorResponse ? error.status : (error as { status?: number })?.status;
+    }
+
+    private isAuthEndpoint(request: HttpRequest<unknown>): boolean {
+        return /auth\/(login|refresh|logout)(\?|$)/.test(request.url);
     }
 }
