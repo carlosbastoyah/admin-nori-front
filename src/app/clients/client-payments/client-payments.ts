@@ -5,6 +5,7 @@ import { Subscription, forkJoin, fromEvent, merge } from 'rxjs';
 import { NotificationService } from '@nori/core';
 import { ClientBillingService } from '../client-billing.service';
 import { BillingPeriod, ClientBillingProfile, Prefactura, PrefacturaPreview } from '../models/billing.models';
+import { unitWords } from '../../catalog/models/catalog.models';
 import { Modal } from '../../shared/components/modal/modal';
 import { PrefacturaEditor } from '../prefactura-editor/prefactura-editor';
 import { formatMXN, formatNumber } from '../../shared/utils/format.util';
@@ -99,6 +100,8 @@ export class ClientPayments {
   // Generate dialog.
   readonly isGenerateOpen = signal(false);
   readonly preview = signal<PrefacturaPreview | null>(null);
+  /** "casos" or "estudios", as the client's plan charges. */
+  readonly unit = computed(() => unitWords(this.preview()?.usageUnit));
   readonly isPreviewing = signal(false);
   readonly previewError = signal<string | null>(null);
   readonly isGenerating = signal(false);
@@ -227,7 +230,7 @@ export class ClientPayments {
     const value = this.studiesOverride as unknown;
     if (value == null || value === '') return null;
     const n = Number(value);
-    if (!Number.isInteger(n) || n < 0) return 'Escribe un número entero de estudios, cero o más.';
+    if (!Number.isInteger(n) || n < 0) return `Escribe un número entero de ${this.unit().many}, cero o más.`;
     return null;
   }
 
@@ -242,8 +245,8 @@ export class ClientPayments {
     if (this.selectedPeriod?.invoiceId) return 'Ese periodo ya tiene prefactura.';
     if (this.studiesError) return this.studiesError;
     if (this.isPreviewing() || !preview) return this.previewError() ? 'Corrige el periodo para continuar.' : 'Calculando…';
-    if (this.isPreviewStale()) return 'Pulsa «Recalcular» para ver el total con los estudios capturados.';
-    if (preview.usageWarning && this.studiesOverride == null) return 'Captura los estudios del periodo.';
+    if (this.isPreviewStale()) return `Pulsa «Recalcular» para ver el total con los ${this.unit().many} capturados.`;
+    if (preview.usageWarning && this.studiesOverride == null) return `Captura los ${this.unit().many} del periodo.`;
     if (this.generateDueDate && this.generateDueDate < preview.periodStart) return 'La vigencia no puede ser anterior al periodo.';
     return null;
   }

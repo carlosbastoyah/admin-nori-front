@@ -16,7 +16,7 @@ const NEGATIVE_ALLOWED: ReadonlySet<BillingLineType> = new Set(['Discount', 'Mig
 
 const LINE_TYPES: ReadonlyArray<{ value: BillingLineType; label: string }> = [
   { value: 'PlanBase', label: 'Cuota base' },
-  { value: 'CaseTier', label: 'Estudios' },
+  { value: 'CaseTier', label: 'Casos o estudios' },
   { value: 'AddOn', label: 'Módulo' },
   { value: 'CfdiStamp', label: 'Timbres' },
   { value: 'StorageBlock', label: 'Almacenamiento' },

@@ -7,6 +7,25 @@
       <button type="button" (click)="loadCatalog()" class="font-semibold underline">Reintentar</button>
     </div>
   } @else {
+    @if (onOldCatalog()) {
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-info-light px-4 py-3 text-sm text-type-1">
+        <p>
+          Este cliente tiene precios del catálogo <b>{{ subscription().catalogCode }}</b>. Los planes de abajo son del
+          <b>{{ catalog()?.catalogCode }}</b>: cambiar de plan lo pasa a esos precios.
+        </p>
+        @if (isSelfService(currentPlan()) && planCode() === subscription().planCode) {
+          <label class="flex items-center gap-2 font-semibold">
+            <input
+              type="checkbox"
+              [checked]="moveToCurrent()"
+              (change)="moveToCurrent.set(!moveToCurrent())"
+              class="h-4 w-4 rounded border-border-m text-teal-600"
+            />
+            Pasar su plan actual a estos precios
+          </label>
+        }
+      </div>
+    }
     <!-- Plan picker -->
     <fieldset [disabled]="isSaving()">
       <legend class="mb-2 text-xs font-bold uppercase tracking-wide text-type-2">Elige el plan</legend>
@@ -33,7 +52,7 @@
               </span>
               <ul class="flex flex-col gap-0.5 text-xs text-type-2">
                 @if (plan.includedStudies != null) {
-                  <li>{{ plan.includedStudies }} estudios incluidos · extra {{ formatMXN(plan.extraStudyPrice) }}</li>
+                  <li>{{ plan.includedStudies }} {{ plan.usageUnit === 'Case' ? 'casos' : 'estudios' }} incluidos · extra {{ formatMXN(plan.extraStudyPrice) }}</li>
                 }
                 @if (plan.storageIncludedGb != null) {
                   <li>{{ plan.storageIncludedGb }} GB de almacenamiento</li>
@@ -45,7 +64,7 @@
             } @else {
               <span class="font-heading text-lg font-semibold text-type-1">A la medida</span>
               <ul class="flex flex-col gap-0.5 text-xs text-type-2">
-                <li>Precio base y por estudio negociados</li>
+                <li>Precio base y por {{ plan.usageUnit === 'Case' ? 'caso' : 'estudio' }} negociados</li>
                 <li>Pago mensual o anual</li>
                 @for (rule of includedAddOns(plan); track rule.addOnCode) {
                   <li>Incluye {{ rule.addOnName }}</li>
@@ -66,7 +85,7 @@
             {{ isCurrent(plan) ? 'Renegociar las condiciones de ' + planName(plan) : 'Cambiar a ' + planName(plan) }}
           </p>
           <ol class="list-decimal pl-5 text-sm text-type-2">
-            <li>Arma la cotización con precio base, precio por estudio, almacenamiento y ciclo de pago.</li>
+            <li>Arma la cotización con precio base, precio por caso, almacenamiento y ciclo de pago.</li>
             <li>Guárdala y elige <span class="font-semibold text-type-1">Aceptar y aplicar al cliente</span>.</li>
             <li>La suscripción actual se reemplaza por la nueva en ese momento; hasta entonces no cambia nada.</li>
           </ol>
@@ -131,7 +150,7 @@
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-type-3">Hoy</p>
               <p class="mt-0.5 font-semibold text-type-1">{{ currentPlan() ? planName(currentPlan()!) : subscription().planName }}</p>
-              <p class="text-type-2">{{ currentFee() != null ? formatMXN(currentFee()) + ' /mes' : 'Condiciones negociadas' }}</p>
+              <p class="text-type-2">{{ currentFee() != null ? formatMXN(currentFee()) + ' /mes' : onOldCatalog() ? 'Precios del ' + subscription().catalogCode : 'Condiciones negociadas' }}</p>
             </div>
             <svg class="h-5 w-5 text-type-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             <div>

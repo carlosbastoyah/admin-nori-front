@@ -7,7 +7,7 @@ import { BackLink } from '../../shared/directives/back-link.directive';
 import { finalize } from 'rxjs/operators';
 import { NotificationService } from '@nori/core';
 import { CatalogService } from '../../catalog/catalog.service';
-import { Catalog, Plan } from '../../catalog/models/catalog.models';
+import { Catalog, Plan, catalogUnitWords, unitWords } from '../../catalog/models/catalog.models';
 import { AddOnCode, PlanCode } from '../../shared/models/shared.models';
 import { formatMXN } from '../../shared/utils/format.util';
 import { ClientsService } from '../clients.service';
@@ -123,6 +123,8 @@ export class ClientNew {
 
   readonly errors = computed<DraftErrors>(() => ({ ...draftErrors(this.draft()), ...this.serverErrors() }));
   readonly plans = computed(() => selfServicePlans(this.catalog()));
+  readonly unit = computed(() => catalogUnitWords(this.catalog()));
+  readonly unitOf = (plan: Plan) => unitWords(plan.usageUnit);
   readonly selectedPlan = computed<Plan | undefined>(() => this.plans().find((p) => p.code === this.draft().planCode));
   readonly stepIndex = computed(() => this.steps.indexOf(this.step()));
   readonly canCreate = computed(() => !blockerBefore(this.errors(), 'review'));

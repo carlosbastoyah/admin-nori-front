@@ -78,7 +78,25 @@ export class ClientPlanEditor {
   readonly isCurrentNegotiated = computed(() => !this.isSelfService(this.currentPlan()));
   /** Negotiated plans are set by accepting a quote, not from here. */
   readonly isSelectedNegotiated = computed(() => !!this.selectedPlan() && !this.isSelfService(this.selectedPlan()));
-  readonly planChanged = computed(() => this.planCode() !== this.subscription().planCode);
+  /** Sold with an earlier catalog (v1/v2, by study): its prices are not the ones listed here. */
+  readonly onOldCatalog = computed(() => {
+    const catalog = this.catalog();
+    return !!catalog && this.subscription().catalogCode !== catalog.catalogCode;
+  });
+  /** The admin asked to keep the plan but move it to the current catalog's prices; off for each fresh subscription. */
+  readonly moveToCurrent = linkedSignal<boolean>(() => {
+    this.subscription();
+    return false;
+  });
+  /** Keeping the plan code still changes it when it moves the client to the current catalog's prices. */
+  readonly movesCatalog = computed(
+    () =>
+      this.moveToCurrent() &&
+      this.planCode() === this.subscription().planCode &&
+      this.onOldCatalog() &&
+      this.isSelfService(this.selectedPlan()),
+  );
+  readonly planChanged = computed(() => this.planCode() !== this.subscription().planCode || this.movesCatalog());
   /** Moving off Enterprise ends its negotiated prices and yearly billing. */
   readonly leavesContract = computed(() => this.planChanged() && this.isCurrentNegotiated() && !this.isSelectedNegotiated());
 
@@ -102,7 +120,8 @@ export class ClientPlanEditor {
   /** Today's monthly fee; null when negotiated (the quote holds it). */
   readonly currentFee = computed(() => {
     const plan = this.currentPlan();
-    if (!plan || this.isCurrentNegotiated()) return null;
+    // The current catalog's prices are not the ones an older catalog sold the plan at.
+    if (!plan || this.isCurrentNegotiated() || this.onOldCatalog()) return null;
     return monthlyFee(plan, this.subscription().addOns.filter((a) => a.isActive).map((a) => a.code));
   });
   readonly newFee = computed(() => {
@@ -111,6 +130,7 @@ export class ClientPlanEditor {
   });
   readonly saveLabel = computed(() => {
     const plan = this.selectedPlan();
+    if (this.movesCatalog() && plan) return `Pasar a precios ${this.catalog()?.catalogCode}`;
     if (this.planChanged() && plan) return `Cambiar a ${planName(plan)}`;
     return 'Guardar complementos';
   });
@@ -150,6 +170,7 @@ export class ClientPlanEditor {
   /** Back to what the client has today. */
   reset(): void {
     this.planCode.set(this.subscription().planCode);
+    this.moveToCurrent.set(false);
     this.wanted.set(this.subscription().addOns.filter((a) => a.isActive).map((a) => a.code));
   }
 
@@ -215,7 +236,12 @@ export class ClientPlanEditor {
 
   private confirmMessage(plan: Plan): string {
     const from = this.currentPlan() ? planName(this.currentPlan()!) : planLabel(this.subscription().planCode);
-    const lines = [`¿Cambiar el plan de ${from} a ${planName(plan)}? El cambio aplica de inmediato.`];
+    const lines = this.movesCatalog()
+      ? [
+          `¿Pasar ${from} del catálogo ${this.subscription().catalogCode} al ${this.catalog()?.catalogCode}? ` +
+            'Desde hoy se cobra con los precios y la unidad (casos o estudios) del catálogo vigente.',
+        ]
+      : [`¿Cambiar el plan de ${from} a ${planName(plan)}? El cambio aplica de inmediato.`];
     if (this.leavesContract()) lines.push('Terminan las condiciones negociadas y la facturación pasa a mensual.');
     if (this.dropped().length) lines.push(`Terminan: ${this.dropped().map((a) => a.name).join(', ')}.`);
     return lines.join('\n\n');

@@ -1,3 +1,5 @@
+import type { UsageUnit } from '../../catalog/models/catalog.models';
+
 /** What Nori charges a lab: its fiscal data, the billing periods and the prefacturas that charge them. */
 
 export type PrefacturaStatus = 'Draft' | 'Issued' | 'Paid' | 'Cancelled';
@@ -50,6 +52,8 @@ export interface PrefacturaPreview {
   periodEnd: string;
   serviceStart: string;
   serviceEnd: string;
+  /** What `studies` counts: cases on v3 plans, studies on v1/v2. */
+  usageUnit?: UsageUnit;
   studies: number;
   /** False when the admin typed the studies or the usage service did not answer. */
   studiesFromUsage: boolean;

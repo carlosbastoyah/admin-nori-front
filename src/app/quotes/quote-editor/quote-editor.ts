@@ -6,7 +6,7 @@ import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, map, switchMap, takeUntil } from 'rxjs/operators';
 import { NotificationService, isApiError } from '@nori/core';
 import { CatalogService } from '../../catalog/catalog.service';
-import { Catalog, Plan } from '../../catalog/models/catalog.models';
+import { Catalog, Plan, catalogUnitWords, unitWords } from '../../catalog/models/catalog.models';
 import { QuotesService } from '../quotes.service';
 import { BillingCycle, CreateQuoteRequest, EnterpriseTerms, Quote, QuoteInput, QuotePricing } from '../models/quote.models';
 import { AddOnCode, PlanCode } from '../../shared/models/shared.models';
@@ -220,6 +220,15 @@ export class QuoteEditor implements OnDestroy {
 
   get isAnnual(): boolean {
     return this.pricing?.billingCycle === 'Annual';
+  }
+
+  /** "casos" or "estudios", as the current catalog charges. */
+  get unit() {
+    return catalogUnitWords(this.catalog);
+  }
+
+  unitOf(plan: Plan) {
+    return unitWords(plan.usageUnit);
   }
 
   get selectedPlan(): Plan | null {

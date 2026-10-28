@@ -6,7 +6,7 @@
 
   <div class="mb-6">
     <h1 class="font-heading text-2xl font-semibold text-type-1">{{ isEditing ? 'Editar cotización' : 'Nueva cotización' }}</h1>
-    <p class="mt-1 text-sm text-type-2">Cuota mensual con estudios incluidos + estudios extra — precios en pesos mexicanos</p>
+    <p class="mt-1 text-sm text-type-2">Cuota mensual con {{ unit.many }} incluidos + {{ unit.many }} extra — precios en pesos mexicanos</p>
   </div>
 
   <div *ngIf="isLoadingCatalog" class="rounded-2xl bg-white p-8 text-center text-sm text-type-3 shadow-e1">{{ isEditing ? 'Cargando cotización…' : 'Cargando catálogo…' }}</div>
@@ -53,14 +53,14 @@
           >
             <span class="block font-heading text-sm font-semibold text-navy-800">{{ plan.name }}</span>
             <span class="mt-1 block font-mono text-xs text-type-3">{{ plan.monthlyBasePrice != null ? formatMXN(plan.monthlyBasePrice) + '/mes' : 'A medida' }}</span>
-            <span *ngIf="plan.includedStudies != null" class="mt-0.5 block text-xs text-type-3">Incluye {{ plan.includedStudies | number: '1.0-0' }} estudios</span>
+            <span *ngIf="plan.includedStudies != null" class="mt-0.5 block text-xs text-type-3">Incluye {{ plan.includedStudies | number: '1.0-0' }} {{ unitOf(plan).many }}</span>
           </button>
         </div>
       </div>
 
       <!-- Casos -->
       <div class="rounded-2xl bg-white p-6 shadow-e1">
-        <label class="text-xs font-bold uppercase tracking-wide text-type-3">3 · Estudios procesados al mes</label>
+        <label class="text-xs font-bold uppercase tracking-wide text-type-3">3 · {{ unit.Many }} al mes</label>
         <div class="mt-3 flex items-center gap-4">
           <input type="range" min="0" max="6000" step="10" [(ngModel)]="estimatedCases" (input)="scheduleRecalc()" class="flex-1 accent-teal-500" />
           <span class="min-w-[92px] text-right font-mono text-xl font-semibold text-navy-800">{{ estimatedCases | number: '1.0-0' }}</span>
@@ -125,7 +125,7 @@
             <input type="number" min="0" step="100" [(ngModel)]="enterpriseTerms.negotiatedBasePrice" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs uppercase tracking-wide text-type-3">Precio fijo por estudio (MXN)</label>
+            <label class="text-xs uppercase tracking-wide text-type-3">Precio fijo por {{ unit.one }} (MXN)</label>
             <input type="number" min="0" step="0.10" [(ngModel)]="enterpriseTerms.negotiatedCaseUnitPrice" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
           </div>
           <div class="flex flex-col gap-1">

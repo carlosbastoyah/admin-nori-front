@@ -238,11 +238,11 @@
         }
         @if (selectedPeriod?.isCurrent) {
           <p class="rounded-xl bg-info-light px-3 py-2 text-xs text-type-1">
-            Este mes sigue en curso: el uso se mide hasta hoy. Si lo cobras ahora, los estudios de los días restantes no se incluyen.
+            Este mes sigue en curso: el uso se mide hasta hoy. Si lo cobras ahora, los {{ unit().many }} de los días restantes no se incluyen.
           </p>
         }
         <label class="flex flex-col gap-1.5">
-          <span class="text-xs font-bold uppercase tracking-wide text-type-2">Estudios del periodo</span>
+          <span class="text-xs font-bold uppercase tracking-wide text-type-2">{{ unit().Many }} del periodo</span>
           <div class="flex gap-2">
             <input
               type="number"
@@ -253,7 +253,7 @@
               [(ngModel)]="studiesOverride"
               (ngModelChange)="onStudiesChange()"
               (keydown.enter)="loadPreview()"
-              [placeholder]="preview()?.studiesFromUsage ? preview()!.studies : 'Captura los estudios'"
+              [placeholder]="preview()?.studiesFromUsage ? preview()!.studies : 'Captura los ' + unit().many"
               class="w-full rounded-xl border px-3 py-2.5 font-mono text-sm"
               [class.border-hi]="!!studiesError"
               [class.border-border-m]="!studiesError"
@@ -297,10 +297,10 @@
           <div class="rounded-xl bg-hi-light px-4 py-3 text-sm text-hi">{{ previewError() }}</div>
         } @else if (preview(); as pv) {
           @if (pv.usageWarning) {
-            <div class="mb-3 rounded-xl bg-lo-light px-4 py-3 text-xs text-type-1">{{ pv.usageWarning }} Captura los estudios a mano y pulsa «Recalcular»; el total de abajo los cuenta en cero.</div>
+            <div class="mb-3 rounded-xl bg-lo-light px-4 py-3 text-xs text-type-1">{{ pv.usageWarning }} Captura los {{ unit().many }} a mano y pulsa «Recalcular»; el total de abajo los cuenta en cero.</div>
           }
           <p class="mb-3 text-xs text-type-3">
-            Servicio del <b class="text-type-1">{{ longDate(pv.serviceStart) }}</b> al <b class="text-type-1">{{ longDate(pv.serviceEnd) }}</b> · {{ formatNumber(pv.studies) }} estudios
+            Servicio del <b class="text-type-1">{{ longDate(pv.serviceStart) }}</b> al <b class="text-type-1">{{ longDate(pv.serviceEnd) }}</b> · {{ formatNumber(pv.studies) }} {{ unit().many }}
           </p>
           <div class="overflow-hidden rounded-xl border border-border-s transition-opacity" [class.opacity-40]="isPreviewStale()">
             <table class="w-full text-left text-sm">

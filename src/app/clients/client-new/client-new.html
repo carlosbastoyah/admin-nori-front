@@ -133,7 +133,7 @@
                     }
                     <ul class="mt-1 flex flex-col gap-0.5 text-xs text-type-2">
                       @if (plan.includedStudies != null) {
-                        <li>{{ plan.includedStudies }} estudios incluidos · extra {{ formatMXN(plan.extraStudyPrice) }}</li>
+                        <li>{{ plan.includedStudies }} {{ unitOf(plan).many }} incluidos · extra {{ formatMXN(plan.extraStudyPrice) }}</li>
                       }
                       @if (plan.storageIncludedGb != null) {
                         <li>{{ plan.storageIncludedGb }} GB de almacenamiento</li>
@@ -172,7 +172,7 @@
                   </div>
                 }
                 <p class="text-sm text-type-2">
-                  Cuota después de la prueba: <span class="font-semibold text-type-1">{{ formatMXN(fee()) }}</span> /mes + IVA, más estudios excedentes.
+                  Cuota después de la prueba: <span class="font-semibold text-type-1">{{ formatMXN(fee()) }}</span> /mes + IVA, más {{ unit().many }} excedentes.
                 </p>
               }
             }

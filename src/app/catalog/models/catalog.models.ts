@@ -8,6 +8,21 @@ export interface PlanAddOnRule {
   discountPercent?: number;
 }
 
+/** What a plan counts to charge the month: each study (catalogs v1/v2) or each case, whatever its studies (v3). */
+export type UsageUnit = 'Study' | 'Case';
+
+/** How screens name a plan's unit; an API without the field still counts studies. */
+export function unitWords(unit: UsageUnit | undefined): { one: string; many: string; Many: string } {
+  return unit === 'Case'
+    ? { one: 'caso', many: 'casos', Many: 'Casos' }
+    : { one: 'estudio', many: 'estudios', Many: 'Estudios' };
+}
+
+/** Every plan of a catalog counts the same unit. */
+export function catalogUnitWords(catalog: Catalog | null | undefined) {
+  return unitWords(catalog?.plans[0]?.usageUnit);
+}
+
 export interface Plan {
   code: PlanCode;
   name: string;
@@ -16,7 +31,8 @@ export interface Plan {
   isPublic: boolean;
   monthlyBasePrice?: number;
   storageIncludedGb?: number;
-  /** Studies the monthly fee covers; absent when the catalog bills studies by tiers. */
+  usageUnit?: UsageUnit;
+  /** Units (`usageUnit`) the monthly fee covers; absent when the catalog bills studies by tiers. */
   includedStudies?: number;
   extraStudyPrice?: number;
   supportLevel: string;
