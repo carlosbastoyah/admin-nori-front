@@ -79,39 +79,32 @@
       <div *ngIf="!isEnterprise" class="rounded-2xl bg-white p-6 shadow-e1">
         <label class="text-xs font-bold uppercase tracking-wide text-type-3">4 · Módulos</label>
 
-        <div *ngIf="addOnRule('billing') as rule" class="flex items-center justify-between border-t border-border-s py-3">
+        <div *ngFor="let rule of planAddOns" class="flex items-center justify-between border-t border-border-s py-3">
           <div>
-            <p class="text-sm font-semibold text-type-1">Facturación (CFDI)</p>
-            <p class="text-xs text-type-3">{{ rule.availability === 'Included' ? 'Incluida en este plan' : (rule.discountPercent ? 'Add-on con ' + (rule.discountPercent * 100) + '% de descuento' : 'Add-on mensual · ' + formatMXN(rule.listPrice)) }}</p>
+            <p class="text-sm font-semibold text-type-1">{{ rule.addOnName }}</p>
+            <p class="text-xs text-type-3">
+              {{
+                rule.availability === 'Included'
+                  ? 'Incluido en este plan'
+                  : rule.discountPercent
+                    ? 'Add-on mensual · ' + formatMXN(rule.listPrice * (1 - rule.discountPercent)) + ' (' + rule.discountPercent * 100 + '% de descuento)'
+                    : 'Add-on mensual · ' + formatMXN(rule.listPrice)
+              }}
+            </p>
           </div>
           <span *ngIf="rule.availability === 'Included'" [class]="badgeClass('info')">Incluido</span>
           <button
             *ngIf="rule.availability === 'Optional'"
             type="button"
-            (click)="toggleBilling()"
+            role="switch"
+            [attr.aria-checked]="isAddOnOn(rule.addOnCode)"
+            [attr.aria-label]="'Agregar ' + rule.addOnName"
+            (click)="toggleAddOn(rule.addOnCode)"
             class="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-            [class.bg-teal-500]="billingAddOnOn"
-            [class.bg-border-m]="!billingAddOnOn"
+            [class.bg-teal-500]="isAddOnOn(rule.addOnCode)"
+            [class.bg-border-m]="!isAddOnOn(rule.addOnCode)"
           >
-            <span class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform" [class.translate-x-5]="billingAddOnOn"></span>
-          </button>
-        </div>
-
-        <div *ngIf="addOnRule('inventory') as rule" class="flex items-center justify-between border-t border-border-s py-3">
-          <div>
-            <p class="text-sm font-semibold text-type-1">Inventario</p>
-            <p class="text-xs text-type-3">{{ rule.availability === 'Included' ? 'Incluido en este plan' : 'Add-on mensual · ' + formatMXN(rule.listPrice) }}</p>
-          </div>
-          <span *ngIf="rule.availability === 'Included'" [class]="badgeClass('info')">Incluido</span>
-          <button
-            *ngIf="rule.availability === 'Optional'"
-            type="button"
-            (click)="toggleInventory()"
-            class="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-            [class.bg-teal-500]="inventoryAddOnOn"
-            [class.bg-border-m]="!inventoryAddOnOn"
-          >
-            <span class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform" [class.translate-x-5]="inventoryAddOnOn"></span>
+            <span class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform" [class.translate-x-5]="isAddOnOn(rule.addOnCode)"></span>
           </button>
         </div>
       </div>
@@ -127,6 +120,11 @@
           <div class="flex flex-col gap-1">
             <label class="text-xs uppercase tracking-wide text-type-3">Precio fijo por {{ unit.one }} (MXN)</label>
             <input type="number" min="0" step="0.10" [(ngModel)]="enterpriseTerms.negotiatedCaseUnitPrice" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+          </div>
+          <div class="flex flex-col gap-1 sm:col-span-2">
+            <label class="text-xs uppercase tracking-wide text-type-3">{{ unit.many }} gratis al mes (opcional)</label>
+            <input type="number" min="0" step="100" [(ngModel)]="enterpriseTerms.includedCases" (input)="scheduleRecalc()" class="rounded-lg border border-border-s bg-white px-3 py-2 text-sm font-mono text-type-1 outline-none focus:border-teal-400" />
+            <span class="text-xs text-type-3">Déjalo en 0 si no se le regalan. Los que no use en el mes no se acumulan.</span>
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs uppercase tracking-wide text-type-3">Tarifa por timbre (MXN)</label>

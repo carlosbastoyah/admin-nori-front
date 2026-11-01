@@ -1,7 +1,10 @@
 import { Component, NgZone, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { NotificationService } from '@nori/core';
 import { BillingOverview } from '../../billing-overview/billing-overview.service';
+import { ClientsService } from '../../clients/clients.service';
+import { PlatformUsers } from '../../clients/models/client.models';
 import { Period, periodLabel } from '../../billing-overview/billing-metrics';
 import { Modal } from '../../shared/components/modal/modal';
 import { formatMXN } from '../../shared/utils/format.util';
@@ -41,6 +44,7 @@ function writeDraft(period: Period, inputs: PartnerReportInputs): void {
 })
 export class PartnerReportDialog implements OnInit {
   private readonly notificationService = inject(NotificationService);
+  private readonly clientsService = inject(ClientsService);
   /** pdfmake finishes in its own callbacks; the result is brought back into Angular so the dialog updates. */
   private readonly zone = inject(NgZone);
 
@@ -88,7 +92,9 @@ export class PartnerReportDialog implements OnInit {
     // Building the PDF blocks the page for a moment; let "Generando…" paint first.
     await new Promise((resolve) => setTimeout(resolve, 50));
     try {
-      await downloadPartnerReport(buildPartnerReport(this.overview(), this.period(), this.inputs));
+      const report = buildPartnerReport(this.overview(), this.period(), this.inputs);
+      report.users = await this.loadUsers();
+      await downloadPartnerReport(report);
       this.zone.run(() => {
         this.isGenerating.set(false);
         this.notificationService.success('Reporte descargado.', 'Listo');
@@ -100,6 +106,15 @@ export class PartnerReportDialog implements OnInit {
         this.isGenerating.set(false);
         this.notificationService.error('No se pudo generar el PDF.');
       });
+    }
+  }
+
+  /** Users online are counted at the moment of generating; the report still downloads without them. */
+  private async loadUsers(): Promise<PlatformUsers | null> {
+    try {
+      return await firstValueFrom(this.clientsService.usersSummary());
+    } catch {
+      return null;
     }
   }
 }

@@ -79,7 +79,7 @@
       <h2 class="font-heading text-base font-semibold text-type-1">¿Qué plan conviene?</h2>
       <p class="mt-1 text-sm text-type-2">Compara el total mensual de cada plan con un volumen de consumo determinado.</p>
 
-      <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <div class="flex flex-col gap-1">
           <label class="text-xs font-bold uppercase tracking-wide text-type-3">Casos/mes</label>
           <input type="number" min="0" [(ngModel)]="compareCases" (change)="runCompare()" class="rounded-lg border border-border-s bg-surface-bg px-3 py-2 text-sm text-type-1 outline-none focus:border-teal-400" />
@@ -97,6 +97,9 @@
         </label>
         <label class="flex items-center gap-2 self-end pb-2 text-sm text-type-2">
           <input type="checkbox" [(ngModel)]="compareInventory" (change)="runCompare()" class="h-4 w-4 rounded border-border-m text-teal-600" /> Inventario
+        </label>
+        <label class="flex items-center gap-2 self-end pb-2 text-sm text-type-2">
+          <input type="checkbox" [(ngModel)]="compareCrm" (change)="runCompare()" class="h-4 w-4 rounded border-border-m text-teal-600" /> CRM
         </label>
       </div>
 

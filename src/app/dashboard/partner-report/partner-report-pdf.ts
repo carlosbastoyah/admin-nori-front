@@ -244,6 +244,13 @@ function clientsSection(report: PartnerReport): Content {
             ['Conversión de prueba a pago', percent(report.conversion)],
             ['Ingreso promedio por cliente (ARPA)', report.arpa == null ? '—' : money(report.arpa)],
             ...report.plans.map((p) => [`Plan ${p.label}`, String(p.count)] as [string, string]),
+            ...(report.users
+              ? ([
+                  ['Usuarios registrados', String(report.users.total)],
+                  ['Usuarios activos', String(report.users.active)],
+                  ['Usuarios conectados al generar', String(report.users.online)],
+                ] as [string, string][])
+              : []),
           ]),
         ],
       },

@@ -19,6 +19,7 @@ export class CatalogService {
     if (filters.storageExtraGb != null) params = params.set('storageExtraGb', filters.storageExtraGb);
     if (filters.billingAddOn != null) params = params.set('billingAddOn', filters.billingAddOn);
     if (filters.inventoryAddOn != null) params = params.set('inventoryAddOn', filters.inventoryAddOn);
+    if (filters.crmAddOn != null) params = params.set('crmAddOn', filters.crmAddOn);
     return this.http.get<ComparePlansResponse>(`${this.base}/plans/compare`, params);
   }
 }

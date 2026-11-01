@@ -20,6 +20,19 @@ export interface Client {
   subscription: ClientSubscriptionSummary | null;
   laboratoryType?: LaboratoryType;
   laboratorySpecialty?: string | null;
+  users?: ClientUsers | null;
+}
+
+/** total = registered; active = enabled; online = with an open session in the last minutes (login or token refresh). */
+export interface ClientUsers {
+  total: number;
+  active: number;
+  online: number;
+}
+
+/** Users across every lab, counted when the API answered. */
+export interface PlatformUsers extends ClientUsers {
+  asOfUtc: string;
 }
 
 export interface PagedClients {

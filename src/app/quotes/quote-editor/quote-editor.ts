@@ -29,6 +29,7 @@ const DEFAULT_ENTERPRISE_TERMS: EnterpriseTerms = {
   billingCycle: 'Monthly',
   discountPercent: 0,
   annualIncreasePercent: 0,
+  includedCases: 0,
 };
 
 /** A cleared or invalid number field arrives as null/NaN; the API needs a non-negative number. */
@@ -52,6 +53,7 @@ function cleanTerms(terms: EnterpriseTerms): EnterpriseTerms {
     storageBlockPrice: amount(terms.storageBlockPrice),
     discountPercent: Math.min(amount(terms.discountPercent), 0.5),
     annualIncreasePercent: Math.min(amount(terms.annualIncreasePercent), 0.5),
+    includedCases: count(terms.includedCases),
   };
 }
 
@@ -102,8 +104,8 @@ export class QuoteEditor implements OnDestroy {
   estimatedCases = 300;
   estimatedCfdiStamps = 0;
   estimatedStorageExtraGb = 0;
-  billingAddOnOn = false;
-  inventoryAddOnOn = false;
+  /** Optional modules the quote adds, whatever the catalog sells (billing, inventory, CRM…). */
+  selectedAddOns = new Set<AddOnCode>();
   enterpriseTerms: EnterpriseTerms = { ...DEFAULT_ENTERPRISE_TERMS };
   validUntil = '';
   notes = '';
@@ -182,8 +184,9 @@ export class QuoteEditor implements OnDestroy {
               cases: count(this.estimatedCases),
               cfdiStamps: count(this.estimatedCfdiStamps),
               storageExtraGb: count(this.estimatedStorageExtraGb),
-              billingAddOn: this.billingAddOnOn,
-              inventoryAddOn: this.inventoryAddOnOn,
+              billingAddOn: this.selectedAddOns.has('billing'),
+              inventoryAddOn: this.selectedAddOns.has('inventory'),
+              crmAddOn: this.selectedAddOns.has('crm'),
             })
             .pipe(catchError(() => of(null)))
         ),
@@ -244,13 +247,18 @@ export class QuoteEditor implements OnDestroy {
     this.scheduleRecalc();
   }
 
-  toggleBilling(): void {
-    this.billingAddOnOn = !this.billingAddOnOn;
-    this.scheduleRecalc();
+  /** The modules of the selected plan: included ones show as such, optional ones can be added. */
+  get planAddOns() {
+    return (this.selectedPlan?.addOnRules ?? []).filter((rule) => rule.availability !== 'NotAvailable');
   }
 
-  toggleInventory(): void {
-    this.inventoryAddOnOn = !this.inventoryAddOnOn;
+  isAddOnOn(code: AddOnCode): boolean {
+    return this.selectedAddOns.has(code);
+  }
+
+  toggleAddOn(code: AddOnCode): void {
+    if (this.selectedAddOns.has(code)) this.selectedAddOns.delete(code);
+    else this.selectedAddOns.add(code);
     this.scheduleRecalc();
   }
 
@@ -335,8 +343,7 @@ export class QuoteEditor implements OnDestroy {
     this.estimatedCases = quote.estimatedCases;
     this.estimatedCfdiStamps = quote.estimatedCfdiStamps;
     this.estimatedStorageExtraGb = quote.estimatedStorageExtraGb;
-    this.billingAddOnOn = quote.selectedAddOnCodes.includes('billing');
-    this.inventoryAddOnOn = quote.selectedAddOnCodes.includes('inventory');
+    this.selectedAddOns = new Set(quote.selectedAddOnCodes);
     this.enterpriseTerms = { ...DEFAULT_ENTERPRISE_TERMS, ...(quote.enterpriseTerms ?? {}) };
     this.validUntil = quote.validUntil ? quote.validUntil.slice(0, 10) : '';
     this.notes = userNotes(quote.notes);
@@ -356,15 +363,10 @@ export class QuoteEditor implements OnDestroy {
   }
 
   private buildQuoteInput(): QuoteInput {
-    const selectedAddOnCodes: AddOnCode[] = [];
-    if (!this.isEnterprise) {
-      if (this.addOnRule('billing')?.availability === 'Optional' && this.billingAddOnOn) {
-        selectedAddOnCodes.push('billing');
-      }
-      if (this.addOnRule('inventory')?.availability === 'Optional' && this.inventoryAddOnOn) {
-        selectedAddOnCodes.push('inventory');
-      }
-    }
+    // Only what the plan sells apart: an included module is already in the price.
+    const selectedAddOnCodes = this.isEnterprise
+      ? []
+      : [...this.selectedAddOns].filter((code) => this.addOnRule(code)?.availability === 'Optional');
 
     return {
       planCode: this.planCode,

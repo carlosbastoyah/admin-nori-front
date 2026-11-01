@@ -148,6 +148,7 @@ function assumptions(quote: Quote): Content {
     ? [
         ['Cuota base', money(t.negotiatedBasePrice)],
         ['Precio por caso', unitMoney(t.negotiatedCaseUnitPrice)],
+        ...(t.includedCases ? [['Casos gratis al mes', quantity(t.includedCases)] as [string, string]] : []),
         ['Precio por timbre', unitMoney(t.negotiatedCfdiStampPrice)],
         ['Almacenamiento incluido', `${quantity(t.storageIncludedGb)} GB`],
         ...(t.storageBlockSizeGb && t.storageBlockPrice ? [['Bloque adicional', `${quantity(t.storageBlockSizeGb)} GB por ${money(t.storageBlockPrice)}`] as [string, string]] : []),

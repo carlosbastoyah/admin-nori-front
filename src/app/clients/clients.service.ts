@@ -9,6 +9,7 @@ import {
   CreateClientRequest,
   CreateClientResponse,
   PagedClients,
+  PlatformUsers,
 } from './models/client.models';
 import { Quote } from '../quotes/models/quote.models';
 import { AddOnCode, PlanCode } from '../shared/models/shared.models';
@@ -30,6 +31,10 @@ export class ClientsService {
     if (filters.subscriptionStatus) params = params.set('subscriptionStatus', filters.subscriptionStatus);
     if (filters.hasSubscription != null) params = params.set('hasSubscription', filters.hasSubscription);
     return this.http.get<PagedClients>(this.base, params);
+  }
+
+  usersSummary(): Observable<PlatformUsers> {
+    return this.http.get<PlatformUsers>(`${this.base}/users-summary`);
   }
 
   getById(clientId: string): Observable<Client> {

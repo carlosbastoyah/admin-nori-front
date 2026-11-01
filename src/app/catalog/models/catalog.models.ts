@@ -70,6 +70,7 @@ export interface CompareFilters {
   storageExtraGb?: number;
   billingAddOn?: boolean;
   inventoryAddOn?: boolean;
+  crmAddOn?: boolean;
 }
 
 export interface PlanCompare {

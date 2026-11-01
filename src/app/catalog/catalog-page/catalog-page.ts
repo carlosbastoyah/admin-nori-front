@@ -37,6 +37,7 @@ export class CatalogPage implements OnDestroy {
   compareStorageExtraGb = 0;
   compareBilling = false;
   compareInventory = false;
+  compareCrm = false;
   compareResult: ComparePlansResponse | null = null;
   isComparing = false;
 
@@ -79,6 +80,7 @@ export class CatalogPage implements OnDestroy {
         storageExtraGb: this.compareStorageExtraGb,
         billingAddOn: this.compareBilling,
         inventoryAddOn: this.compareInventory,
+        crmAddOn: this.compareCrm,
       })
       .pipe(takeUntil(this.destroy$))
       .subscribe({

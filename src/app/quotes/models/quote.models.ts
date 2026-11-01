@@ -18,6 +18,8 @@ export interface EnterpriseTerms {
   discountPercent?: number;
   /** Yearly increase from the second contract year, e.g. 0.05 for 5%. */
   annualIncreasePercent?: number;
+  /** Cases a month given for free; 0 unless the deal grants them. */
+  includedCases?: number;
 }
 
 export interface QuoteInput {

@@ -18,6 +18,7 @@ import {
   topClients,
 } from '../../billing-overview/billing-metrics';
 import { planLabel } from '../../shared/utils/labels.util';
+import { PlatformUsers } from '../../clients/models/client.models';
 
 /** What the admin types before downloading: costs the system does not know, and the direction's comments. */
 export interface PartnerReportInputs {
@@ -122,6 +123,8 @@ export interface PartnerReport {
 
   // Clients.
   totalClients: number;
+  /** Users of every lab when the PDF was generated; null when the API could not be read. */
+  users?: PlatformUsers | null;
   newClients: number;
   previousNewClients: number;
   clientsAtStart: number;

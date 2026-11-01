@@ -46,7 +46,7 @@
       </div>
 
       <!-- Key facts -->
-      <dl class="grid grid-cols-2 border-t border-border-s lg:grid-cols-4">
+      <dl class="grid grid-cols-2 border-t border-border-s lg:grid-cols-5">
         <div class="border-b border-r border-border-s px-6 py-4 lg:border-b-0">
           <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Plan</dt>
           <dd class="mt-1 text-sm font-semibold text-type-1">
@@ -88,10 +88,22 @@
             <span *ngIf="(paymentsSummary?.overdue ?? 0) > 0" class="text-xs font-normal">· {{ formatMXN(paymentsSummary!.overdue) }} vencido</span>
           </dd>
         </div>
-        <div role="button" tabindex="0" (click)="selectTab('payments')" (keydown.enter)="selectTab('payments')" class="cursor-pointer px-6 py-4 hover:bg-surface-bg">
+        <div role="button" tabindex="0" (click)="selectTab('payments')" (keydown.enter)="selectTab('payments')" class="cursor-pointer border-b border-border-s px-6 py-4 hover:bg-surface-bg lg:border-b-0 lg:border-r">
           <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Periodos sin prefactura</dt>
           <dd class="mt-1 text-sm font-semibold" [class.text-lo]="(paymentsSummary?.missingPeriods ?? 0) > 0" [class.text-type-1]="!(paymentsSummary?.missingPeriods)">
             {{ paymentsSummary?.missingPeriods ?? 0 }}
+          </dd>
+        </div>
+        <div class="px-6 py-4">
+          <dt class="text-xs font-bold uppercase tracking-wide text-type-3">Usuarios</dt>
+          <dd class="mt-1 text-sm font-semibold text-type-1">
+            <ng-container *ngIf="client.users; else noUsers">
+              {{ client.users.active }} activos <span class="font-normal text-type-3">de {{ client.users.total }}</span>
+              <span class="block text-xs font-normal" [class.text-teal-700]="client.users.online > 0" [class.text-type-3]="client.users.online === 0">
+                {{ client.users.online }} conectados ahora
+              </span>
+            </ng-container>
+            <ng-template #noUsers>—</ng-template>
           </dd>
         </div>
       </dl>

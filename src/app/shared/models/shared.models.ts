@@ -1,5 +1,5 @@
 export type PlanCode = 'esencial' | 'crecimiento' | 'escala' | 'enterprise';
-export type AddOnCode = 'billing' | 'inventory';
+export type AddOnCode = 'billing' | 'inventory' | 'crm';
 
 export type QuoteStatus = 'Draft' | 'Sent' | 'Accepted' | 'Expired' | 'Superseded';
 export type SubscriptionStatus = 'Trial' | 'Active' | 'Suspended' | 'Cancelled';
